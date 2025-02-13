@@ -97,6 +97,6 @@ def getSigns():
 # getPlannedEvents()
 # getWeatherStations()
 # getSnowPlows()
-# getDestinations()
+getDestinations()
 # getSigns()
 
