@@ -1,6 +1,7 @@
 import type { MetaFunction } from '@remix-run/node';
 import UserInput from '~/components/UserInput';
 import NavBar from '~/components/NavBar';
+import Map from '~/components/Map';
 
 //This is the main page (all .tsx files under routes are singular pages)
 export const meta: MetaFunction = () => {
@@ -18,7 +19,10 @@ export default function Index() {
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-800">
           Welcome to Skiwise
         </h1>
-        <UserInput />
+        <div className="flex flex-row">
+          <UserInput />
+          <Map />
+        </div>
       </div>
     </div>
   );
