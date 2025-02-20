@@ -60,6 +60,8 @@ def get_recent_snowfall(df):
         print(f"{resort}: Latitude = {latitude}, Longitude = {longitude}")
 
         # make a call to synoptic API to get closest weather station report of snowfall
+        # https://api.synopticdata.com/v2/stations/metadata?token={your token}&radius={latitude},{longitude},{radius_miles}&limit={limit_count}
+        
 
 
     return 
