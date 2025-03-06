@@ -40,7 +40,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ long, lat }) => {
   }, [long, lat]);
 
   return (
-    <div className="relative w-[600px] h-[500px]">
+    <div className="relative w-[600px] h-[500px] ">
       <div className="absolute inset-0 w-full h-full" ref={mapContainerRef} />
     </div>
   );
