@@ -20,7 +20,7 @@
    
   - Get coordinates for traffic box
 
-8. Minimum amount of fresh powder in 24 hours
+8. Minimum amount of fresh powder in 24 hours (filter out resorts initially)
     
 
 ---
