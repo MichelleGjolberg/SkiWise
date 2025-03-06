@@ -16,7 +16,7 @@
   
   - For figuring out A, B and C values from formulation
 
-7. Start and end locations
+7. Start location
    
   - Get coordinates for traffic box
     
