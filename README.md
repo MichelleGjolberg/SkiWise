@@ -1,6 +1,6 @@
 ### Data from user
 
-1. People on the trip
+1. People on the trip 
   
 2. Max time one-way trip
   
@@ -15,6 +15,10 @@
 6. Budget vs Time vs Experience
   
   - For figuring out A, B and C values from formulation
+
+7. Start and end locations
+   
+  - Get coordinates for traffic box
     
 
 ---
