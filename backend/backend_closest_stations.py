@@ -191,6 +191,7 @@ def get_closest_stations_for_all_resorts():
 #     conn.close()
 
 
-try_connection()  
+if __name__ == "__main__":
+    try_connection()  
+    get_closest_stations_for_all_resorts()
 
-get_closest_stations_for_all_resorts()

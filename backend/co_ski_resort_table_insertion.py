@@ -231,13 +231,13 @@ def returnResp(response):
     return
 
 
-# main
-try_connection()
+if __name__ == "__main__":
+    try_connection()
 
-df = import_csv_to_db('ski_resort_stats.csv')
-colorado_df = filter_co_resorts(df)
-# print(colorado_df)
+    df = import_csv_to_db('ski_resort_stats.csv')
+    colorado_df = filter_co_resorts(df)
+    # print(colorado_df)
 
-insert_colorado_df_to_db(colorado_df)
+    insert_colorado_df_to_db(colorado_df)
 
-colorado_resorts = get_all_co_resorts()
+    colorado_resorts = get_all_co_resorts()
