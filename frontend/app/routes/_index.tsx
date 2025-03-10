@@ -20,9 +20,6 @@ export default function Index() {
       >
         <div className="flex flex-col items-center justify-center h-2/3 ">
           <NavBar />
-          <h1 className="text-2xl font-bold text-gray-200 dark:text-gray-800 flex justify-center items-center text-center h-100">
-            Welcome to Skiwise - Find your mountain
-          </h1>
         </div>
       </div>
       <div className="flex flex-grow items-center h-full justify-center flex-col bg-slate-10 my-5 z-10">
