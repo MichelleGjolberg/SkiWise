@@ -45,7 +45,7 @@ def get_start_coordinates(address):
         response=response.json()
 
         coordinates=response["results"][0]["geometry"]["location"]
-        return f"{coordinates["lat"]},{coordinates["lng"]}"
+        return f"{coordinates['lat']},{coordinates['lng']}"
     except requests.exceptions.RequestException as e:
         print(f"Error making API request: {e}")
         return
