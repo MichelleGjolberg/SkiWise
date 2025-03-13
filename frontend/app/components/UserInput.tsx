@@ -3,6 +3,10 @@ import React, { useState } from 'react';
 const UserInput: React.FC = () => {
   const [userName, setUserName] = useState('');
   const [distance, setDistance] = useState('');
+  const [people, setPeople] = useState("");
+  const [budget, setBudget] = useState("");
+  const [drivingExperience, setDrivingExperience] = useState("beginner");
+  const [freshPowder, setFreshPowder] = useState("");
   const [passType, setPassType] = useState('none');
   const [difficulty, setDifficulty] = useState('beginner');
   const [avalancheRisk, setAvalancheRisk] = useState('1');
@@ -47,6 +51,58 @@ const UserInput: React.FC = () => {
           onChange={(e) => setDistance(e.target.value)}
           className="border rounded p-2"
           required
+        />
+      </label>
+
+      {/* Number of People */}
+      <label className="flex flex-col">
+        <span className="font-semibold">People on the trip:</span>
+        <input
+          type="number"
+          placeholder="Enter number of people"
+          value={people}
+          onChange={(e) => setPeople(e.target.value)}
+          className="border rounded p-2"
+          required
+        />
+      </label>
+
+      {/* Max Budget */}
+      <label className="flex flex-col">
+        <span className="font-semibold">Max Budget ($):</span>
+        <input
+          type="number"
+          placeholder="Enter your budget"
+          value={budget}
+          onChange={(e) => setBudget(e.target.value)}
+          className="border rounded p-2"
+          required
+        />
+      </label>
+
+      {/* Driving Experience */}
+      <label className="flex flex-col">
+        <span className="font-semibold">Driving Experience:</span>
+        <select
+          value={drivingExperience}
+          onChange={(e) => setDrivingExperience(e.target.value)}
+          className="border rounded p-2"
+        >
+          <option value="beginner">Beginner</option>
+          <option value="intermediate">Intermediate</option>
+          <option value="expert">Expert</option>
+        </select>
+      </label>
+
+      {/* Minimum Fresh Powder */}
+      <label className="flex flex-col">
+        <span className="font-semibold">Minimum fresh powder in 24 hours (inches):</span>
+        <input
+          type="number"
+          placeholder="Enter inches of fresh snow"
+          value={freshPowder}
+          onChange={(e) => setFreshPowder(e.target.value)}
+          className="border rounded p-2"
         />
       </label>
 
