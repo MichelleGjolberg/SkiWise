@@ -13,23 +13,23 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   return (
-    <div className="flex flex-col h-screen">
+    <div className="relative flex flex-col ">
       <div
-        className="absolute h-screen w-full bg-fixed bg-cover bg-top overflow-hidden shadow-lg z-0"
+        className="absolute h-screen w-full bg-fixed bg-cover bg-top  shadow-lg z-0"
         style={{ backgroundImage: "url('/mountain_range.avif')" }}
       >
-        <div className="flex flex-col items-center justify-center h-2/3 ">
+        <div className="flex flex-col items-center justify-center h-1/3">
           <NavBar />
-          <h1 className="text-2xl font-bold text-gray-200 dark:text-gray-800 flex justify-center items-center text-center h-100">
-            Welcome to Skiwise - Find your mountain
+          <h1 className="text-2xl font-bold text-gray-100  flex justify-center items-center text-center h-100">
+            Welcome to Skiwise - Find your perfect mountain!
           </h1>
         </div>
-      </div>
-      <div className="flex flex-grow items-center h-full justify-center flex-col bg-slate-10 my-5 z-10">
-        <div className="flex flex-row">
-          <UserInput />
+        <div className="flex relative flex-grow items-center w-full h-fit justify-center flex-col bg-slate-50 my-5  py-8">
+          <div className="flex flex-row">
+            <UserInput />
 
-          <Prediction />
+            <Prediction />
+          </div>
         </div>
       </div>
     </div>
