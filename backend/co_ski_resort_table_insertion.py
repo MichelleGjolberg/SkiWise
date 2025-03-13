@@ -221,84 +221,23 @@ def add_column(table_name, column_name, column_definition):
             conn.close()
 
 
-# make calls to synoptic API to determine closest weather station to each resort (via lat/long) and append to table
-# https://api.synopticdata.com/v2/stations/metadata?token={your token}&radius=33.704,-112.014,10&limit=10
-def get_closest_station():
-    """
-    Query the colorado_resorts table, iterate over each row to extract latitude and longitude,
-    and make an API call to get the closest weather station data
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-
-    # call add_column for closest_station and closest_station_id
-    add_column("colorado_resorts", "closest_station", "VARCHAR(255)")
-    add_column("colorado_resorts", "closest_station_id", "VARCHAR(50)")
-
-    query = 'SELECT resort_name, lat, lon FROM "colorado_resorts";'
-    cursor.execute(query)
-    
-    rows = cursor.fetchall()
-    for row in rows:
-        resort = row[0]
-        latitude = row[1]
-        longitude = row[2]
-        print(f"{resort}: Latitude = {latitude}, Longitude = {longitude}")
-        
-        # make a call to synoptic API to get closest weather station report of snowfall
-        radius_miles = 10
-        limit_count = 1  #  # TODO - can update to get more closest stations to get more data and take average
-        url = (
-            f"{API_ROOT}stations/metadata?"
-            f"token={API_TOKEN}&radius={latitude},{longitude},{radius_miles}&limit={limit_count}"
-        )
-        headers = {'content-type': 'application/json'}
-        response = requests.get(url, headers=headers)
-        returnResp(response) # TODO - make sure the station is active
-
-        data = response.json()
-
-        # check if 'STATION' exists and has at least one entry
-        if "STATION" in data and len(data["STATION"]) > 0:
-            station_name = data["STATION"][0].get("NAME")
-            print("Station name:", station_name)
-            station_id = data["STATION"][0].get("STID")
-            print("Station id:", station_id)
-
-            # Update the corresponding row in the database with the station info.
-            update_query = """
-                UPDATE colorado_resorts
-                SET closest_station = %s,
-                    closest_station_id = %s
-                WHERE resort_name = %s;
-            """
-            cursor.execute(update_query, (station_name, station_id, resort))
-            conn.commit()
-            print("Added station name and id to database.")
-        else:
-            print("No station data available.")
-        
-
-    cursor.close()
-    conn.close()
-
-# make calls to synoptic API with the station for each resort to get recent snowfall TODO - expand to be able to get more data/fields
-# https://api.synopticdata.com/v2/stations/metadata?token={your token}&radius=33.704,-112.014,10&limit=10
-def get_station_data():
-    # TODO - call API here to get data or do when getting the closest stations?
-    pass
+def returnResp(response):
+    if response.status_code == 200:
+        jsonResponse = json.dumps(response.json(), indent=4, sort_keys=True)
+        print("response status code = 200")
+        print(jsonResponse)
+    else:
+        print(f"response code is {response.status_code}, raw response is {response.text}")
+    return
 
 
+if __name__ == "__main__":
+    try_connection()
 
+    df = import_csv_to_db('ski_resort_stats.csv')
+    colorado_df = filter_co_resorts(df)
+    # print(colorado_df)
 
-# main
-try_connection()
+    insert_colorado_df_to_db(colorado_df)
 
-df = import_csv_to_db('ski_resort_stats.csv')
-colorado_df = filter_co_resorts(df)
-# print(colorado_df)
-
-insert_colorado_df_to_db(colorado_df)
-
-colorado_resorts = get_all_co_resorts()
-get_closest_station()
+    colorado_resorts = get_all_co_resorts()
