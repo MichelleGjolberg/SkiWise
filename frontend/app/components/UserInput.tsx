@@ -3,13 +3,13 @@ import React, { useState } from 'react';
 const UserInput: React.FC = () => {
   const [userName, setUserName] = useState('');
   const [distance, setDistance] = useState('');
-  const [people, setPeople] = useState("");
-  const [budget, setBudget] = useState("");
-  const [drivingExperience, setDrivingExperience] = useState("beginner");
-  const [freshPowder, setFreshPowder] = useState("");
+  const [people, setPeople] = useState('');
+  const [budget, setBudget] = useState('');
+  const [drivingExperience, setDrivingExperience] = useState('beginner');
+  const [freshPowder, setFreshPowder] = useState('');
   const [passType, setPassType] = useState('none');
-  const [difficulty, setDifficulty] = useState('beginner');
-  const [avalancheRisk, setAvalancheRisk] = useState('1');
+  const [costImportance, setCostImportance] = useState(5);
+  const [timeImportance, setTimeImportance] = useState(5);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -123,7 +123,9 @@ const UserInput: React.FC = () => {
 
       {/* Minimum Fresh Powder */}
       <label className="flex flex-col">
-        <span className="font-semibold">Minimum fresh powder in 24 hours (inches):</span>
+        <span className="font-semibold">
+          Minimum fresh powder in 24 hours (inches):
+        </span>
         <input
           type="number"
           placeholder="Enter inches of fresh snow"
@@ -167,32 +169,33 @@ const UserInput: React.FC = () => {
       </fieldset>
 
       <label className="flex flex-col">
-        <span className="font-semibold">Skiing Difficulty:</span>
-        <select
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-          className="border rounded p-2"
-        >
-          <option value="beginner">Beginner (10-20° slopes)</option>
-          <option value="intermediate">Intermediate (20-35° slopes)</option>
-          <option value="advanced">Advanced (35+° slopes)</option>
-        </select>
+        <span className="font-semibold">How important is cost? (1-10)</span>
+        <input
+          type="range"
+          min="1"
+          max="10"
+          value={costImportance}
+          onChange={(e) => setCostImportance(Number(e.target.value))}
+          className="cursor-pointer"
+        />
+        <span className="text-center">{costImportance}</span>
       </label>
 
       <label className="flex flex-col">
-        <span className="font-semibold">Avalanche risk:</span>
-        <select
-          value={avalancheRisk}
-          onChange={(e) => setAvalancheRisk(e.target.value)}
-          className="border rounded p-2"
-        >
-          <option value="1">1 - Low</option>
-          <option value="2">2 - Moderate</option>
-          <option value="3">3 - Considerable</option>
-          <option value="4">4 - High</option>
-          <option value="5">5 - Extreme (Please, avoid)</option>
-        </select>
+        <span className="font-semibold">
+          How important is driving time? (1-10)
+        </span>
+        <input
+          type="range"
+          min="1"
+          max="10"
+          value={timeImportance}
+          onChange={(e) => setTimeImportance(Number(e.target.value))}
+          className="cursor-pointer"
+        />
+        <span className="text-center">{timeImportance}</span>
       </label>
+
       <button
         type="submit"
         className="bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
