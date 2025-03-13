@@ -2,10 +2,13 @@ from flask import Flask, request, jsonify
 import psycopg2
 import requests
 import json
+from flask_cors import CORS
 
-# test commit
 
 app = Flask(__name__)
+
+# Enable CORS for all routes or specific origins
+CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
 gmaps_API_KEY="AIzaSyAVmTm21eXwuF0FRIopdo-IIiajWOMZlfs"
 
@@ -52,11 +55,16 @@ def get_mountain():
     data=request.get_json()
     print("Input recieved")
     print(data)
-    team=data.get("current_team")
-    remaining_budget=data.get("remaining_budget")
-    print("After")
+    user_name=data.get("userName")
+    distance=data.get("distance")
+    pass_type=data.get("passType")
+    difficulty=data.get("difficulty")
+    avalanche_risk=data.get("avalancheRisk")
+
+
+    return jsonify({"Input recieved": str(1)}), 200
 
 if __name__ == "__main__":
     # start flask app
-    print(get_start_coordinates("232 Co Rd 29, Leadville, CO"))
+    #print(get_start_coordinates("232 Co Rd 29, Leadville, CO"))
     app.run(host="0.0.0.0", port=8000)
