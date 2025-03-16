@@ -52,17 +52,26 @@ def get_start_coordinates(address):
     
 @app.route("/get_mountain", methods=["POST"])
 def get_mountain():
-    data=request.get_json()
-    print("Input recieved")
-    print(data)
-    user_name=data.get("userName")
-    distance=data.get("distance")
-    pass_type=data.get("passType")
-    difficulty=data.get("difficulty")
-    avalanche_risk=data.get("avalancheRisk")
+    data = request.get_json()
+    print("Input received:")
 
+    # Extract all fields from the JSON request
+    user_name = data.get("userName")
+    distance = data.get("distance")
+    people = data.get("people")
+    budget = data.get("budget")
+    driving_experience = data.get("drivingExperience")
+    fresh_powder = data.get("freshPowder")
+    pass_type = data.get("passType")
+    cost_importance = data.get("costImportance")
+    time_importance = data.get("timeImportance")
 
-    return jsonify({"Input recieved": str(1)}), 200
+    # Debug print to ensure all values are captured
+    print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
+          f"Driving Experience: {driving_experience}, Fresh Powder: {fresh_powder}, Pass Type: {pass_type}, "
+          f"Cost Importance: {cost_importance}, Time Importance: {time_importance}")
+
+    return jsonify({"message": "Input received successfully"}), 200
 
 if __name__ == "__main__":
     # start flask app
