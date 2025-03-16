@@ -90,13 +90,13 @@ def getSigns():
     return returnResp(response)  # TODO what data do we want 
 
 
-
-# call each method to get response from COtrip
-# getIncidents()
-# getRoadConditions()
-# getPlannedEvents()
-# getWeatherStations()
-# getSnowPlows()
-getDestinations()
-# getSigns()
+if __name__ == "__main__":
+    # call each method to get response from COtrip
+    # getIncidents()
+    # getRoadConditions()
+    # getPlannedEvents()
+    # getWeatherStations()
+    # getSnowPlows()
+    getDestinations()
+    # getSigns()
 
