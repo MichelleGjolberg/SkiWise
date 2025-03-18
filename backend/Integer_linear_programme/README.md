@@ -1,5 +1,3 @@
-# 🏔️ Ski Resort Optimization Project
-
 ## Overview
 This project uses **Integer Linear Programming (ILP)** to rank and select the top ski resorts based on multiple factors:
 - **Cost per person**
