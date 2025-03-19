@@ -1,12 +1,11 @@
 ## Overview
-This project uses **Integer Linear Programming (ILP)** to rank and select the top ski resorts based on multiple factors:
+This project uses **Linear Programming (LP)** to rank and select the top ski resorts based on multiple factors:
 - **Cost per person**
 - **Travel time**
-- **Snowfall conditions**
+- **Snowfall conditions** (experimental)
 
 ### **Functionality**
-- The ILP model considers **user-defined constraints** (budget, time, snowfall) and finds the top 3 resorts that maximize the weighted score.
-- Uses **Big-M formulation** to properly enforce constraints during optimization.
+- The LP model considers **user-defined constraints** (budget, time, snowfall) and finds the top 3 resorts that maximize the weighted score.
 - Outputs the selected resorts along with detailed information on cost, travel time, and scores.
 
 ---
@@ -24,6 +23,11 @@ Ensure you have the following installed:
 ### **Sample Output**
 
 ```
+.
+.
+.
+Resort 9 removed: Budget or time exceeded.
+=== Debugging Values ===
 Resort #0:
   Score: -9.56
   Cost per Person: $60
@@ -40,8 +44,6 @@ Resort #1:
   Normalized Cost: 1.0
   Normalized Time: 1.1081081081081081
 
-.
-.
 .
 .
 .
