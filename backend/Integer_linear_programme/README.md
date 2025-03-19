@@ -17,14 +17,7 @@ Ensure you have the following installed:
 
 - Python 3.x
 - Required libraries:
-  - `pulp` → For solving the ILP
   - `math` → For rounding operations
-
-### **Install Required Libraries**
-Use `pip` to install the required library:
-```bash
-pip install pulp
-```
 
 ---
 
@@ -47,11 +40,38 @@ Resort #1:
   Normalized Cost: 1.0
   Normalized Time: 1.1081081081081081
 
-Resort #2:
-  Score: -1.51
+.
+.
+.
+.
+.
+
+=== Optimal Ski Resorts ===
+
+Rank #1:
+  Aspen Mountain
+  Score: 3.04
   Cost per Person: $50
-  Travel Time: 2.4 hrs
+  Travel Time: 5.0 hrs
   Fresh Snowfall at Resort: 14 inches
   Normalized Cost: 1.2962962962962963
-  Normalized Time: 2.5675675675675675
+  Normalized Time: 2.9375
+
+Rank #2:
+  Arapahoe Basin
+  Score: 0.37
+  Cost per Person: $60
+  Travel Time: 3.9000000000000004 hrs
+  Fresh Snowfall at Resort: 12 inches
+  Normalized Cost: 1.4444444444444444
+  Normalized Time: 2.25
+
+Rank #3:
+  Aspen Highlands
+  Score: -0.96
+  Cost per Person: $30
+  Travel Time: 2.1 hrs
+  Fresh Snowfall at Resort: 7 inches
+  Normalized Cost: 1.0
+  Normalized Time: 1.125
 ```
