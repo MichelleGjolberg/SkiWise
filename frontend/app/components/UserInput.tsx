@@ -12,7 +12,7 @@ const UserInput: React.FC = () => {
   const [timeImportance, setTimeImportance] = useState(5);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!userName || !distance) {
@@ -20,7 +20,8 @@ const UserInput: React.FC = () => {
       return;
     }
     setError(null);
-    console.log({
+    console.log({ userName, distance, passType });
+    const formData = {
       userName,
       distance,
       people,
@@ -30,8 +31,28 @@ const UserInput: React.FC = () => {
       passType,
       costImportance,
       timeImportance,
-    });
-    alert('Form Submitted');
+    };
+
+    try {
+      const response = await fetch('http://localhost:8000/get_mountain', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch mountain data');
+      }
+
+      const data = await response.json();
+      console.log('Response:', data);
+      alert('Form Submitted Successfully');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error submitting the form');
+    }
   };
 
   return (
