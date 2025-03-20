@@ -58,7 +58,7 @@ const UserInput: React.FC = () => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg max-w-md"
+      className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg max-w-[400px] max-h-[500px] overflow-y-auto"
     >
       {error && <p className="text-red-500 font-semibold">{error}</p>}
       <label className="flex flex-col">
