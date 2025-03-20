@@ -20,13 +20,17 @@ const UserInput: React.FC = () => {
       return;
     }
     setError(null);
-    console.log({ userName, distance, passType, difficulty, avalancheRisk });
+    console.log({ userName, distance, passType });
     const formData = {
       userName,
       distance,
+      people,
+      budget,
+      drivingExperience,
+      freshPowder,
       passType,
-      difficulty,
-      avalancheRisk,
+      costImportance,
+      timeImportance,
     };
 
     try {
