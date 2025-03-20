@@ -82,6 +82,8 @@ def get_mountain():
     # store the filtered list in the database
     store_filtered_resorts(resorts_with_snow)
 
+    # TODO filter by pass type
+
     # TODO need to then pass them to cotrip api to get travel times (traffic backend)
 
     # TODO need to pass list of resorts with travel times to optimization function
@@ -179,7 +181,6 @@ def store_filtered_resorts(resort_list):
 
     cursor.close()
     conn.close()
-
 
 
 
