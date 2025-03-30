@@ -3,6 +3,7 @@ import psycopg2
 import requests
 import json
 from flask_cors import CORS
+from get_traffic import calculate_route, get_incidents
 
 
 app = Flask(__name__)
@@ -65,15 +66,17 @@ def get_mountain():
     pass_type = data.get("passType")
     cost_importance = data.get("costImportance")
     time_importance = data.get("timeImportance")
+    location=data.get("location")
+    latitude=location.get("latitude")
+    longitude=location.get("longitude")
 
     # Debug print to ensure all values are captured
     print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
           f"Driving Experience: {driving_experience}, Fresh Powder: {fresh_powder}, Pass Type: {pass_type}, "
-          f"Cost Importance: {cost_importance}, Time Importance: {time_importance}")
+          f"Cost Importance: {cost_importance}, Time Importance: {time_importance}, Coordinates: {latitude}, {longitude}")
 
     return jsonify({"message": "Input received successfully"}), 200
 
 if __name__ == "__main__":
     # start flask app
-    #print(get_start_coordinates("232 Co Rd 29, Leadville, CO"))
     app.run(host="0.0.0.0", port=8000)

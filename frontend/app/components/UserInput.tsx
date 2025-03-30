@@ -20,7 +20,32 @@ const UserInput: React.FC = () => {
       return;
     }
     setError(null);
-    console.log({ userName, distance, passType });
+    console.log({ userName, distance, people, budget, drivingExperience, freshPowder, passType, costImportance, timeImportance,});
+
+    if (!navigator.geolocation) {
+      console.error("Geolocation is not supported by this browser.");
+      return;
+    }
+  
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        sendFormData(latitude, longitude);
+      },
+      (error) => {
+        console.warn("Error getting location:", error);
+        
+        // Default location (Example: Denver, CO)
+        const defaultLatitude = 40.0189728;
+        const defaultLongitude = -105.2747406;
+        console.log("Using default location (Boulder, CO):", { latitude: defaultLatitude, longitude: defaultLongitude });
+  
+        sendFormData(defaultLatitude, defaultLongitude);
+      }
+    );
+  };
+
+  const sendFormData = async (latitude: number, longitude: number) => {
     const formData = {
       userName,
       distance,
@@ -31,27 +56,26 @@ const UserInput: React.FC = () => {
       passType,
       costImportance,
       timeImportance,
+      location: { latitude, longitude },  // Send either user or default location
     };
-
+  
     try {
-      const response = await fetch('http://localhost:8000/get_mountain', {
-        method: 'POST',
+      const response = await fetch("http://localhost:8000/get_mountain", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
-
+  
       if (!response.ok) {
-        throw new Error('Failed to fetch mountain data');
+        throw new Error("Failed to fetch mountain data");
       }
-
+  
       const data = await response.json();
-      console.log('Response:', data);
-      alert('Form Submitted Successfully');
+      console.log("Response from server:", data);
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error submitting the form');
+      console.error("Error:", error);
     }
   };
 
