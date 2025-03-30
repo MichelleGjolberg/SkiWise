@@ -83,7 +83,7 @@ def get_recent_snowfall_24_hr():
             station_id = st_row[0]
             print(f"  Trying station {station_id} for resort {resort}...")
             
-            # Build the API URL for precip_accum_24_hour.
+            # Build the API URL for precip_accum_24_hour
             # Here, recent=10000 means the most recent # of mins of data (can adjust if needed)
             url = (
                 f"{API_ROOT}stations/timeseries?stid={station_id}&recent=10000"
@@ -125,19 +125,35 @@ def get_recent_snowfall_24_hr():
                         else: # otherwise take the max of all values (shorter than a day)
                             precip = max(valid_precip_values)
 
-                        # Upsert into the recent_snowfall table
-                        upsert_query = """
+                        # update recent_snowfall table
+                        update_query_recent_snowfall = """
                         UPDATE recent_snowfall
                         SET precip_accum_24_hour = %s
                         WHERE resort_name = %s;
                         """
+
                         try:
-                            cursor.execute(upsert_query, (precip, resort))
+                            # update recent_snowfall table
+                            cursor.execute(update_query_recent_snowfall, (precip, resort))
                             conn.commit()
-                            print(f"    Recorded precipitation data for resort '{resort}' using station '{station_id}'.")
+                            print(f"    Recorded 24 hr precipitation data for resort '{resort}' in recent_snowfall using station '{station_id}'.")
                         except Exception as e:
-                            print(f"    Error updating recent_snowfall for resort '{resort}': {e}")
-                        
+                            print(f"    Error updating 24 hr precip in recent_snowfall for resort '{resort}': {e}")
+
+                        # update colorado_resorts table
+                        update_query_colorado_resorts = """
+                        UPDATE colorado_resorts
+                        SET precip_accum_24_hour = %s
+                        WHERE resort_name = %s;
+                        """
+                        try:
+                            # update colorado_resorts table
+                            cursor.execute(update_query_colorado_resorts, (precip, resort))
+                            conn.commit()
+                            print(f"    Recorded 24 hr precipitation data for resort '{resort}' in colorado_resorts using station '{station_id}'.")
+                        except Exception as e:
+                            print(f"    Error updating 14 hr precip in colorado_resorts for resort '{resort}': {e}")
+
                         found_valid_station = True
                         break  # Exit loop for current resort since we found valid data
                     else:
@@ -253,19 +269,34 @@ def get_recent_snowfall_1_hr():
                         # if there is more than one day's worth of data (24 hrs * 15 min intervals), only take the most recent day
                         precip = valid_precip_values[-1]
 
-                        # Upsert into the recent_snowfall table
-                        upsert_query = """
+                        # Update recent_snowfall table
+                        update_query = """
                         UPDATE recent_snowfall
                         SET precip_accum_1_hour = %s
                         WHERE resort_name = %s;
                         """
                         try:
-                            cursor.execute(upsert_query, (precip, resort))
+                            cursor.execute(update_query, (precip, resort))
                             conn.commit()
-                            print(f"    Recorded precipitation data for resort '{resort}' using station '{station_id}'.")
+                            print(f"    Recorded 1 hr precipitation data in recent_snowfall for resort '{resort}' using station '{station_id}'.")
                         except Exception as e:
-                            print(f"    Error updating recent_snowfall for resort '{resort}': {e}")
-                        
+                            print(f"    Error updating 1 hr precip in recent_snowfall for resort '{resort}': {e}")
+
+                        # update colorado_resorts table
+                        update_query_colorado_resorts = """
+                        UPDATE colorado_resorts
+                        SET precip_accum_1_hour = %s
+                        WHERE resort_name = %s;
+                        """
+                        try:
+                            # update colorado_resorts table
+                            cursor.execute(update_query_colorado_resorts, (precip, resort))
+                            conn.commit()
+                            print(f"    Recorded 1 hr precipitation data for resort '{resort}' in colorado_resorts using station '{station_id}'.")
+                        except Exception as e:
+                            print(f"    Error updating 1 hr precip in colorado_resorts for resort '{resort}': {e}")
+
+
                         found_valid_station = True
                         break  # Exit loop for current resort since we found valid data
                     else:
@@ -301,7 +332,7 @@ def get_recent_snowfall_1_hr():
 # add_column("recent_snowfall", "precipitation_since_local_midnight", "NUMERIC")
 
 if __name__ == "__main__":
-    #get_recent_snowfall_24_hr()
+    get_recent_snowfall_24_hr()
     get_recent_snowfall_1_hr()
     # add_column("recent_snowfall", "precip_accum_1_hour", "NUMERIC")
 

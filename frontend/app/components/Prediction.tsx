@@ -3,7 +3,7 @@ import ResortCard from './ResortCard';
 import ResortMap from './ResortMap';
 
 {
-  /*TODO: A function that gets the predicted mountains, this is hardcoded*/
+  /*TODO: A function that gets the predicted mountains, this is hard coded*/
 }
 
 const getPredictedMountains = () => {
