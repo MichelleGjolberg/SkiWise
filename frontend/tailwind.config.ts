@@ -6,6 +6,8 @@ export default {
     extend: {
       colors: {
         lightblue: '#6fb4e8',
+        mapline: '#0084e3',
+        mappointer: '#739feb',
       },
       fontFamily: {
         sans: [
