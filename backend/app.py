@@ -77,19 +77,25 @@ def get_mountain():
           f"Driving Experience: {driving_experience}, Fresh Powder: {fresh_powder_inches}, Pass Type: {pass_type}, "
           f"Cost Importance: {cost_importance}, Time Importance: {time_importance}")
     
-    resorts_with_snow = get_resorts_with_fresh_powder(fresh_powder_inches) # returns a filtered list of resorts
+
+    # filter by meeting min_snowfall requirement
+    filtered_resorts = get_resorts_with_fresh_powder(fresh_powder_inches) # returns a filtered list of resorts that meet min snow requirement
+
+    # filter by pass type
+    filtered_resorts = get_resorts_with_pass(filtered_resorts, pass_type) # filter by pass type (ikon, epic, none)
+
 
     # store the filtered list in the database
-    store_filtered_resorts(resorts_with_snow)
+    store_filtered_resorts(filtered_resorts)
 
-    # TODO filter by pass type
 
     # TODO need to then pass them to cotrip api to get travel times (traffic backend)
 
     # TODO need to pass list of resorts with travel times to optimization function
 
+
     # return jsonify({"message": "Input received successfully"}), 200
-    return jsonify({"resorts": resorts_with_snow}), 200 
+    return jsonify({"resorts": filtered_resorts}), 200 
     # TOOD do we want to return the list of resorts that meet the min powder requirement?  
 
 
@@ -131,6 +137,29 @@ def get_resorts_with_fresh_powder(fresh_powder_inches):
     return resort_list  # Return the filtered list of resorts
 
 
+def get_resorts_with_pass(resort_list, pass_type):
+    """
+    Filters the resort list based on the pass type.
+    - If pass_type is "epic", returns resorts where pass_type is "Epic".
+    - If pass_type is "ikon", returns resorts where pass_type is "Ikon".
+    - If pass_type is "none", returns all resorts without filtering.
+    """
+    if pass_type.lower() == "none":
+        print("No filtering applied for pass type.")
+        return resort_list  # No filtering needed
+
+    # Convert pass_type to title case to match database values ("Epic", "Ikon", "Neither")
+    pass_type = pass_type.title()
+
+    # Filter the resorts based on the pass_type column
+    filtered_resorts = [resort for resort in resort_list if resort["pass_type"] == pass_type]
+
+    print(f"Filtered {len(filtered_resorts)} resorts for pass type: {pass_type}")
+
+    return filtered_resorts
+
+
+
 def store_filtered_resorts(resort_list):
     """
     Clears the 'filtered_resorts' table and inserts the filtered resorts.
@@ -157,9 +186,9 @@ def store_filtered_resorts(resort_list):
     INSERT INTO filtered_resorts (
         resort_name, state, summit, base, vertical, lifts, runs, acres, 
         green_percent, green_acres, blue_percent, blue_acres, black_percent, 
-        black_acres, lat, lon, closest_station, closest_station_id, precip_accum_24_hour
+        black_acres, lat, lon, closest_station, closest_station_id, precip_accum_24_hour, pass_type, logo_path
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     );
     """
 
@@ -169,7 +198,7 @@ def store_filtered_resorts(resort_list):
             resort["lifts"], resort["runs"], resort["acres"], resort["green_percent"], resort["green_acres"],
             resort["blue_percent"], resort["blue_acres"], resort["black_percent"], resort["black_acres"],
             resort["lat"], resort["lon"], resort["closest_station"], resort["closest_station_id"], 
-            resort["precip_accum_24_hour"]
+            resort["precip_accum_24_hour"], resort["pass_type"], resort["logo_path"]
         )
         for resort in sorted_resort_list
     ]
