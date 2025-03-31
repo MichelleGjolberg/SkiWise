@@ -168,7 +168,7 @@ const UserInput: React.FC = () => {
             checked={passType === 'none'}
             onChange={() => setPassType('none')}
           />
-          <span>No Pass</span>
+          <span>Willing to pay for a pass</span>
         </label>
       </fieldset>
 
