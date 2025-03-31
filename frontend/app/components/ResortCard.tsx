@@ -5,6 +5,7 @@ type ResortCardProps = {
   distance: number;
   icon: string;
   iconAlt: string;
+  snow?: number;
 };
 
 const ResortCard: React.FC<ResortCardProps> = ({
@@ -12,6 +13,7 @@ const ResortCard: React.FC<ResortCardProps> = ({
   distance,
   icon,
   iconAlt,
+  snow,
 }) => {
   return (
     <>
@@ -20,6 +22,14 @@ const ResortCard: React.FC<ResortCardProps> = ({
         <div className="flex flex-col justify-center pl-4">
           <p className="font-bold"> {place}</p>
           <p> Distance: {distance.toString()} miles</p>
+          <div className="flex flex-row">
+            <img
+              src="/snow.png"
+              alt="Snow flake"
+              className="h-5 w-fit px-1 pt-1"
+            />
+            <p>{snow}" last 24h</p>
+          </div>
         </div>
       </div>
     </>
