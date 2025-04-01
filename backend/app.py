@@ -84,14 +84,17 @@ def get_mountain():
     # filter by pass type
     filtered_resorts = get_resorts_with_pass(filtered_resorts, pass_type) # filter by pass type (ikon, epic, none)
 
+    # TODO need to then pass them to cotrip api to get travel times (traffic backend)
+
+
+    # TODO need to pass list of resorts with travel times to optimization function
+
 
     # store the filtered list in the database
     store_filtered_resorts(filtered_resorts)
 
 
-    # TODO need to then pass them to cotrip api to get travel times (traffic backend)
 
-    # TODO need to pass list of resorts with travel times to optimization function
 
 
     # return jsonify({"message": "Input received successfully"}), 200
