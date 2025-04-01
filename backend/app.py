@@ -99,7 +99,6 @@ def get_mountain():
 
     # return jsonify({"message": "Input received successfully"}), 200
     return jsonify({"resorts": filtered_resorts}), 200 
-    # TOOD do we want to return the list of resorts that meet the min powder requirement?  
 
 
 def get_resorts_with_fresh_powder(fresh_powder_inches):
