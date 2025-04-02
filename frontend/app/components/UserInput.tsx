@@ -13,6 +13,7 @@ const UserInput: React.FC = () => {
   const [timeImportance, setTimeImportance] = useState(5);
   const [error, setError] = useState<string | null>(null);
 
+  // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
     setPassType('none');
     setIsPayOptionSelected(value === 'pay');
