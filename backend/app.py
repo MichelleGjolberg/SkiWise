@@ -174,8 +174,8 @@ def get_mountain():
 
 @app.route("/get_all_resorts", methods=["GET"])
 def api_get_all_resorts():
-    resorts = get_all_resorts()
-    return jsonify({"resorts": resorts}), 200
+    all_resorts_cards = build_resort_cards("colorado_resorts") # get all cards for all resorts in colorado_resorts db
+    return jsonify({"resorts": all_resorts_cards}), 200
 
 
 def get_all_resorts():
@@ -363,3 +363,5 @@ if __name__ == "__main__":
     # start flask app
     #print(get_start_coordinates("232 Co Rd 29, Leadville, CO"))
     app.run(host="0.0.0.0", port=8000)
+    # api_get_all_resorts()
+    
