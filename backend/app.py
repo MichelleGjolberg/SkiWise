@@ -50,12 +50,14 @@ resorts_to_optimize = [
 ]
 
 
-
+# TODO get from results of traffic API call
 miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
 accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
-snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2]
-snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10]
 current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
+
+
+snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2] # TODO call weather API to get recent snowfall at start location
+snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10] # TODO call weather API to get recent snowfall at end locations = resorts (already in db?)
 
 
 # list of all resorts and data
