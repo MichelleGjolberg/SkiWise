@@ -108,6 +108,7 @@ def get_recent_snowfall_24_hr():
                 f"{API_ROOT}stations/timeseries?stid={station_id}&recent=10000"
                 f"&vars=precip_accum_24_hour&token={API_TOKEN}"
             )
+            print(f"url: {url}")
             headers = {'content-type': 'application/json'}
 
             try:
@@ -161,7 +162,7 @@ def get_recent_snowfall_24_hr():
                         """, (station_id, resort))
 
                         conn.commit()
-                        print(f"    Successfully recorded 24 hr snowfall and updated station for resort '{resort}' using station '{station_id}'.")
+                        print(f"    Successfully recorded 24 hr snowfall of {precip} and updated station for resort '{resort}' using station '{station_id}'.")
                         found_valid_station = True
                         break
 
