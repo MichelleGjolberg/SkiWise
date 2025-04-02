@@ -164,13 +164,18 @@ def get_mountain():
 
 
     # call db to select only predicted resorts and wanted columns (for frontend cards) from filtered_resorts, add cols
-    resort_cards_list = build_resort_cards()
+    resort_cards_list = build_resort_cards("filtered_resorts")
 
     # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list (currently null)
 
 
     return jsonify({"resorts": resort_cards_list}), 200 
 
+
+@app.route("/get_all_resorts", methods=["GET"])
+def api_get_all_resorts():
+    resorts = get_all_resorts()
+    return jsonify({"resorts": resorts}), 200
 
 
 def get_all_resorts():
@@ -313,7 +318,7 @@ def store_filtered_resorts(resort_list):
     conn.close()
 
 
-def build_resort_cards():
+def build_resort_cards(table_name):
     """
     Fetch relevant resort data from filtered_resorts, reshape it to match
     the frontend card format, and inject distance values from the provided list.
@@ -321,9 +326,9 @@ def build_resort_cards():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    query = """
+    query = f"""
         SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour
-        FROM filtered_resorts
+        FROM {table_name}
         ORDER BY precip_accum_24_hour DESC;
     """
     cursor.execute(query)
