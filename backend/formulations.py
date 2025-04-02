@@ -5,46 +5,31 @@ import matplotlib.pyplot as plt
 # User Inputs & from API ----------------------> Get from backend
 # ==========================
 
-num_people = 4
-max_budget = 100
-max_time = 5
-min_snowfall = 1
-w1, w2, w3 = 5, -5, -5
-DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
+# num_people = 4
+# max_budget = 100
+# max_time = 5 
+# min_snowfall = 1
+# w1, w2, w3 = 5, -5, -5 # snowfall, cost, travel time weights 
+w1 = 5
 
 # ==========================
 # Hardcoded Parameters
 # ==========================
 
+DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
 FUEL_COST = 3                 # Dollars per mile
 MAINTENANCE_FACTOR = 0.10     # 10%
 SNOWFALL_TIME_FACTOR = 0.5   # Random weight added per inch of snowfall
 NORM_MIN = 1 # Normalization range
 NORM_MAX = 5
 
-# ==========================
-# Hardcoded Data for 10 Resorts -----------------> Get from backend
-# ==========================
 
-# Attributes for each resort: miles (both-ways), accidents, snowfall_start, snowfall_end, current_time (seconds)
-# resorts_to_optimize = [
-#     "Arapahoe Basin",
-#     "Aspen Highlands",
-#     "Aspen Mountain",
-#     "Beaver Creek",
-#     "Breckenridge",
-#     "Buttermilk",
-#     "Copper Mountain",
-#     "Crested Butte",
-#     "Echo Mountain",
-#     "Eldora Mountain"
-# ]
 
-miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
-accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
-snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2]
-snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10]
-current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
+# miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
+# accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
+# snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2]
+# snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10]
+# current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
 # snowfall_dest = [15, 9, 20, 11, 10, 25, 13, 14, 8, 18]  # Fresh powder at destination - Get from API giving snowfall in last 1 hour (commented for now)
 
 # ==========================
@@ -76,7 +61,7 @@ def normalize(values):
 # Calculated Values for Each Resort
 # ==========================
 
-def calculate_cost_per_person(num_people):
+def calculate_cost_per_person(num_people, miles):
     """Calculate cost per person for each resort."""
     cost_per_person = []
     
@@ -88,7 +73,7 @@ def calculate_cost_per_person(num_people):
     
     return cost_per_person
 
-def calculate_travel_time():
+def calculate_travel_time(miles, accidents, snowfall_start, snowfall_end, current_time):
     """Calculate travel time for each resort for to and fro."""
     travel_time = []
     
@@ -105,12 +90,11 @@ def calculate_travel_time():
 
 
 
-def optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, w1, w2, w3):
+def optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time):
     """Optimize ski resorts and return the top 3 choices."""
-    
     # Calculate costs and times
-    cost_per_person = calculate_cost_per_person(num_people)
-    travel_time = calculate_travel_time()
+    cost_per_person = calculate_cost_per_person(num_people, miles)
+    travel_time = calculate_travel_time(miles, accidents, snowfall_start, snowfall_end, current_time)
 
     # Normalize values
     normalized_snowfall = normalize(snowfall_end)
@@ -121,8 +105,8 @@ def optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, 
     selected_resorts = []
     
     print("\n=== Debugging Values ===")
-    for i in range(len(miles)):
-        score = w1 * normalized_snowfall[i] + w2 * normalized_cost[i] + w3 * normalized_time[i]
+    for i in range(len(resorts_to_optimize)):
+        score = snowfall_importance * normalized_snowfall[i] + cost_importance * normalized_cost[i] + time_importance * normalized_time[i]
 
         all_scores.append(score)
 

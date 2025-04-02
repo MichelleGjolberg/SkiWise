@@ -4,23 +4,30 @@ import requests
 import json
 from flask_cors import CORS
 from decimal import Decimal
-from formulations import (
-    calculate_base_fee,
-    round_up_to_nearest_10,
-    normalize,
-    calculate_cost_per_person,
-    calculate_travel_time,
-    optimize_ski_resorts)
+from formulations import optimize_ski_resorts
 
 
 # ==========================
 # User Inputs & from API ----------------------> Get from backend
 # ==========================
+
+# Hardcoded Data for 10 Resorts -----------------> Get from backend
+# default values: TODO update to 0/null ?
 num_people = 4
 max_budget = 100
 max_time = 5
 min_snowfall = 1
-w1, w2, w3 = 5, -5, -5
+cost_importance, time_importance = -5, -5 
+snowfall_importance = 5 # TODO add frontend slider to snowfall_importance and capture variable in backend
+
+# TODO get from results of traffic API call
+miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
+accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
+current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
+
+
+snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2] # TODO call weather API to get recent snowfall (1 hr?) at start location
+snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
 
 # Hardcoded Parameters
 DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
@@ -30,35 +37,8 @@ SNOWFALL_TIME_FACTOR = 0.5   # Random weight added per inch of snowfall
 NORM_MIN = 1 # Normalization range
 NORM_MAX = 5
 
-# ==========================
-# Hardcoded Data for 10 Resorts -----------------> Get from backend
-# ==========================
-
 # Attributes for each resort: miles (both-ways), accidents, snowfall_start, snowfall_end, current_time (seconds)
-# resorts_to_optimize = []
-resorts_to_optimize = [
-    "Arapahoe Basin, CO",
-    "Aspen Highlands, CO",
-    "Aspen Mt, CO",
-    "Beaver Creek, CO",
-    "Breckenridge, CO",
-    "Buttermilk, CO",
-    "Copper Mt, CO",
-    "Crested Butte, CO",
-    "Echo Mountain",          # TODO not in DB
-    "Eldora, CO"
-]
-
-
-# TODO get from results of traffic API call
-miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
-accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
-current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
-
-
-snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2] # TODO call weather API to get recent snowfall at start location
-snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10] # TODO call weather API to get recent snowfall at end locations = resorts (already in db?)
-
+resorts_to_optimize = []
 
 # list of all resorts and data
 all_resorts = []
@@ -118,20 +98,19 @@ def get_mountain():
 
     ### Extract all fields from the JSON request
     user_name = data.get("userName")
-    distance = data.get("distance")
-    people = data.get("people")
-    budget = data.get("budget")
+    distance = float(data.get("distance")) # minutes
+    people = int(data.get("people"))
+    budget = float(data.get("budget"))
     driving_experience = data.get("drivingExperience")
-    fresh_powder_inches = data.get("freshPowder")
+    fresh_powder_inches = float(data.get("freshPowder"))
     pass_type = data.get("passType")
-    cost_importance = data.get("costImportance")
-    time_importance = data.get("timeImportance")
-
+    cost_importance = int(data.get("costImportance"))
+    time_importance = int(data.get("timeImportance"))
+    
     ### Debug print to ensure all values are captured
     print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
           f"Driving Experience: {driving_experience}, Fresh Powder: {fresh_powder_inches}, Pass Type: {pass_type}, "
           f"Cost Importance: {cost_importance}, Time Importance: {time_importance}")
-    
 
     ### get all resorts
     all_resorts = get_all_resorts()
@@ -146,13 +125,18 @@ def get_mountain():
     ### TODO need to then pass filtered_resorts to cotrip api to get travel times (traffic backend)
 
 
-    ### pass list of filtered resorts with travel times to optimization function
-    # TODO works on dummy variables in formulations.py right now, need to update with data from frontend (Sierra working on)
-    # update global variables with data from frontend user input
-    # resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
+    ### update global variables with data from frontend user input
+    resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
+    min_snowfall = fresh_powder_inches
+    num_people = people
+    max_budget = budget
+    max_time = distance
+    print(f"resorts_to_optimize: {resorts_to_optimize}")
+    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}")
     
-    # Optimize
-    top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, w1, w2, w3)
+    ### pass list of filtered resorts with travel times to optimization function
+    top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time) 
+    #top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance) 
 
     # Print the top resorts in the terminal
     print("\n=== Top 3 Ski Resorts ===")
@@ -166,7 +150,7 @@ def get_mountain():
         print(f"  Snowfall: {snowfall_end[idx]} inches")
 
 
-    print(top_3)
+    print(f"Top 3 resorts: {top_3}")
 
     # Filter the in-memory list to only include those resorts
     filtered_resorts = [
@@ -182,10 +166,9 @@ def get_mountain():
     # call db to select only predicted resorts and wanted columns (for frontend cards) from filtered_resorts, add cols
     resort_cards_list = build_resort_cards()
 
-    # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and add this to the list
+    # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list (currently null)
 
 
-    # return jsonify({"message": "Input received successfully"}), 200
     return jsonify({"resorts": resort_cards_list}), 200 
 
 
