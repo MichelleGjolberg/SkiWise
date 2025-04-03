@@ -8,9 +8,16 @@ const UserInput: React.FC = () => {
   const [drivingExperience, setDrivingExperience] = useState('beginner');
   const [freshPowder, setFreshPowder] = useState('');
   const [passType, setPassType] = useState('none');
+  const [isPayOptionSelected, setIsPayOptionSelected] = useState(false);
   const [costImportance, setCostImportance] = useState(5);
   const [timeImportance, setTimeImportance] = useState(5);
   const [error, setError] = useState<string | null>(null);
+
+  // This function allows for "value=none" for "Both Passes" and "Willing to pay"
+  const handleNoneChange = (value: string) => {
+    setPassType('none');
+    setIsPayOptionSelected(value === 'pay');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +81,7 @@ const UserInput: React.FC = () => {
       </label>
 
       <label className="flex flex-col">
-        <span className="font-semibold">Driving Distance (minutes):</span>
+        <span className="font-semibold">Driving Time (minutes):</span> 
         <input
           type="number"
           placeholder="Enter driving time"
@@ -138,7 +145,7 @@ const UserInput: React.FC = () => {
           className="border rounded p-2"
         />
       </label>
-
+      {/* Type of pass */}
       <fieldset className="flex flex-col">
         <legend className="font-semibold">
           Do you have an Ikon/Epic pass?
@@ -165,8 +172,17 @@ const UserInput: React.FC = () => {
           <input
             type="radio"
             value="none"
-            checked={passType === 'none'}
-            onChange={() => setPassType('none')}
+            checked={passType === 'none' && !isPayOptionSelected}
+            onChange={() => handleNoneChange('both')}
+          />
+          <span>Both Passes</span>
+        </label>
+        <label className="flex items-center space-x-2">
+          <input
+            type="radio"
+            value="none"
+            checked={passType === 'none' && isPayOptionSelected}
+            onChange={() => handleNoneChange('pay')}
           />
           <span>Willing to pay for a pass</span>
         </label>
