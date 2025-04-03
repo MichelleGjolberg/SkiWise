@@ -1,7 +1,6 @@
 import type { MetaFunction } from '@remix-run/node';
 import UserInput from '~/components/UserInput';
 import NavBar from '~/components/NavBar';
-import Prediction from '~/components/Prediction';
 import { useState, useRef } from 'react';
 import Footer from '~/components/Footer';
 
@@ -55,12 +54,7 @@ export default function Index() {
       </div>
 
       <div className="flex-grow z-10" ref={contentRef}>
-        {showContent && (
-          <div className="flex flex-grow justify-center flex-row w-full h-full bg-lightblue  py-5 mt-[-400px] ">
-            <UserInput />
-            <Prediction />
-          </div>
-        )}
+        {showContent && <UserInput />}
       </div>
       <Footer />
     </div>
