@@ -9,7 +9,8 @@ type ResortMapProps = {
   encodedPolyline: string;
 };
 
-const MAPBOX_TOKEN = (mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN);
+const MAPBOX_TOKEN = (mapboxgl.accessToken =
+  import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
 
 const ResortMap: React.FC<ResortMapProps> = ({
   startPoint,
