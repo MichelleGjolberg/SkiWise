@@ -64,7 +64,23 @@ def get_recent_snowfall_24_hr():
         # Generate a safe table name for the stations of this resort.
         station_table = safe_table_name(resort)
         
-        # Query the station table for this resort, ordered by distance ascending.
+        # Get station from valid_stations first
+        get_valid_station_query = """
+            SELECT station_id FROM valid_stations_24hr WHERE resort_name = %s;
+        """
+        cursor.execute(get_valid_station_query, (resort,))
+        valid_station_row = cursor.fetchone()
+        valid_station_id = valid_station_row[0] if valid_station_row else None
+
+        stations_to_try = []
+
+        # Add preferred valid station if it exists
+        if valid_station_id:
+            print(f"  Trying preferred valid station {valid_station_id} for resort {resort}...")
+            stations_to_try.append(valid_station_id)
+
+
+        # Query the remaining stations for this resort, ordered by distance ascending.
         try:
             conn_st = get_db_connection()
             cur_st = conn_st.cursor()
@@ -77,141 +93,292 @@ def get_recent_snowfall_24_hr():
             print(f"Error querying station table '{station_table}' for resort '{resort}': {e}")
             continue
 
+        # Add remaining stations (excluding the one already tried if it exists)
+        all_station_ids = [row[0] for row in station_rows]
+        if valid_station_id in all_station_ids:
+            all_station_ids.remove(valid_station_id)
+        stations_to_try.extend(all_station_ids)
+
         found_valid_station = False
-        # Iterate through the stations (from closest to furthest)
-        for st_row in station_rows:
-            station_id = st_row[0]
+        # Try each station in the prioritized list
+        for station_id in stations_to_try:
             print(f"  Trying station {station_id} for resort {resort}...")
-            
-            # Build the API URL for precip_accum_24_hour
-            # Here, recent=10000 means the most recent # of mins of data (can adjust if needed)
+
             url = (
                 f"{API_ROOT}stations/timeseries?stid={station_id}&recent=10000"
                 f"&vars=precip_accum_24_hour&token={API_TOKEN}"
             )
+            print(f"url: {url}")
             headers = {'content-type': 'application/json'}
+
             try:
                 response = requests.get(url, headers=headers, timeout=10)
             except Exception as e:
                 print(f"    API call error for station {station_id} of resort {resort}: {e}")
                 continue
 
-            # Log the API response (optional)
             returnResp(response)
+
             try:
                 data = response.json()
             except Exception as e:
                 print(f"    Error parsing JSON for station {station_id}: {e}")
                 continue
 
-            # Check the response summary.
             summary = data.get("SUMMARY", {})
             if summary.get("NUMBER_OF_OBJECTS", 0) == 0 and summary.get("RESPONSE_CODE") == 2:
                 print(f"    No valid data for station {station_id} (response indicates no station data).")
-                continue  # Try the next station
-            else:
-                # Valid data returned; calculate the average precipitation
-                observations = data.get('STATION', [{}])[0].get('OBSERVATIONS', {})
-                precip_values = observations.get('precip_accum_24_hour_set_1', [])
+                continue  # Try next station
 
-                if precip_values:
-                    # Filter out None values before calculating the average
-                    valid_precip_values = [v for v in precip_values if v is not None]
+            observations = data.get('STATION', [{}])[0].get('OBSERVATIONS', {})
+            precip_values = observations.get('precip_accum_24_hour_set_1', [])
 
-                    if valid_precip_values:
-                        # if there is more than one day's worth of data (24 hrs * 15 min intervals), only take the most recent day
-                        if len(valid_precip_values) >= 96: 
-                            precip = max(valid_precip_values[-96:])
-                        else: # otherwise take the max of all values (shorter than a day)
-                            precip = max(valid_precip_values)
+            if precip_values:
+                valid_precip_values = [v for v in precip_values if v is not None]
 
-                        # update recent_snowfall table
-                        update_query_recent_snowfall = """
-                        UPDATE recent_snowfall
-                        SET precip_accum_24_hour = %s
-                        WHERE resort_name = %s;
-                        """
+                if valid_precip_values:
+                    precip = max(valid_precip_values[-96:]) if len(valid_precip_values) >= 96 else max(valid_precip_values)
 
-                        try:
-                            # update recent_snowfall table
-                            cursor.execute(update_query_recent_snowfall, (precip, resort))
-                            conn.commit()
-                            print(f"    Recorded 24 hr precipitation data for resort '{resort}' in recent_snowfall using station '{station_id}'.")
-                        except Exception as e:
-                            print(f"    Error updating 24 hr precip in recent_snowfall for resort '{resort}': {e}")
+                    try:
+                        # Update recent_snowfall table
+                        cursor.execute("""
+                            UPDATE recent_snowfall
+                            SET precip_accum_24_hour = %s
+                            WHERE resort_name = %s;
+                        """, (precip, resort))
 
-                        # update colorado_resorts table
-                        update_query_colorado_resorts = """
-                        UPDATE colorado_resorts
-                        SET precip_accum_24_hour = %s
-                        WHERE resort_name = %s;
-                        """
-                        try:
-                            # update colorado_resorts table
-                            cursor.execute(update_query_colorado_resorts, (precip, resort))
-                            conn.commit()
-                            print(f"    Recorded 24 hr precipitation data for resort '{resort}' in colorado_resorts using station '{station_id}'.")
-                        except Exception as e:
-                            print(f"    Error updating 14 hr precip in colorado_resorts for resort '{resort}': {e}")
+                        # Update colorado_resorts table
+                        cursor.execute("""
+                            UPDATE colorado_resorts
+                            SET precip_accum_24_hour = %s
+                            WHERE resort_name = %s;
+                        """, (precip, resort))
 
+                        # Update valid_stations_24hr table
+                        cursor.execute("""
+                            UPDATE valid_stations_24hr
+                            SET station_id = %s
+                            WHERE resort_name = %s;
+                        """, (station_id, resort))
+
+                        conn.commit()
+                        print(f"    Successfully recorded 24 hr snowfall of {precip} and updated station for resort '{resort}' using station '{station_id}'.")
                         found_valid_station = True
-                        break  # Exit loop for current resort since we found valid data
-                    else:
-                        print(f"    No valid precipitation data available for resort '{resort}' using station '{station_id}'.")
-                        conn.rollback()
+                        break
 
-        
+                    except Exception as e:
+                        print(f"    Error during DB update for resort '{resort}': {e}")
+                        conn.rollback()
+                else:
+                    print(f"    No valid precipitation values at station '{station_id}'")
+            else:
+                print(f"    No precipitation data at all for station '{station_id}'")
+
         if not found_valid_station:
             print(f"    No valid station data found for resort '{resort}'.")
-            # TODO do we want to add 0.0 or None when no data is available?
-            upsert_query = """
-                        UPDATE recent_snowfall
-                        SET precip_accum_24_hour = %s
-                        WHERE resort_name = %s;
-            """
             try:
-                cursor.execute(upsert_query, (0.0, resort))
+                cursor.execute("""
+                    UPDATE recent_snowfall
+                    SET precip_accum_24_hour = %s
+                    WHERE resort_name = %s;
+                """, (0.0, resort))
                 conn.commit()
-                print(f"    Set precip_accum_24_hour to NULL for resort '{resort}' due to lack of valid data.")
+                print(f"    Set precip_accum_24_hour to 0.0 for resort '{resort}' due to lack of valid data.")
             except Exception as e:
-                print(f"    Error updating recent_snowfall for resort '{resort}' with NULL data: {e}")
+                print(f"    Error updating recent_snowfall for resort '{resort}' with 0.0 data: {e}")
 
-        #break
-        
-    
     cursor.close()
     conn.close()
 
 
 
+# def get_recent_snowfall_1_hr():
+#     """
+#     For each resort in colorado_resorts, iterate through the stations stored
+#     in its dedicated station table (ordered by distance). For each station, make
+#     an API call (with variable 'precip_accum_one_hour_set_1' in MM) and check the response.
+#     If the response does not indicate "no data" (i.e. NUMBER_OF_OBJECTS is 0 and RESPONSE_CODE is 2),
+#     then record the JSON result in the recent_snowfall table and break out of the station loop.
+#     Otherwise, proceed to the next closest station.
+#     """
+    
+#     # Connect to the database to query the resorts.
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+    
+#     # Get all resort names from the colorado_resorts table.
+#     query = 'SELECT resort_name FROM "colorado_resorts";'
+#     cursor.execute(query)
+#     resorts = cursor.fetchall()  # Each row is a tuple like (resort_name,)
+    
+#     for res_row in resorts:
+        
+#         resort = res_row[0]
+#         print(f"\nProcessing resort: {resort}")
+        
+#         # Generate a safe table name for the stations of this resort.
+#         station_table = safe_table_name(resort)
+        
+#         # Query the station table for this resort, ordered by distance ascending.
+#         try:
+#             conn_st = get_db_connection()
+#             cur_st = conn_st.cursor()
+#             station_query = f"SELECT station_id FROM {station_table} ORDER BY distance ASC;"
+#             cur_st.execute(station_query)
+#             station_rows = cur_st.fetchall()
+#             cur_st.close()
+#             conn_st.close()
+#         except Exception as e:
+#             print(f"Error querying station table '{station_table}' for resort '{resort}': {e}")
+#             continue
+
+#         found_valid_station = False
+#         # Iterate through the stations (from closest to furthest)
+#         for st_row in station_rows:
+#             station_id = st_row[0]
+#             print(f"  Trying station {station_id} for resort {resort}...")
+            
+#             # Build the API URL for precip_accum_one_hour
+#             # Here, recent=10000 means the most recent # of mins data (can adjust if needed)
+#             url = (
+#                 f"{API_ROOT}stations/timeseries?stid={station_id}&recent=1000"
+#                 f"&vars=precip_accum_one_hour&token={API_TOKEN}"
+#             )
+#             headers = {'content-type': 'application/json'}
+#             try:
+#                 response = requests.get(url, headers=headers, timeout=10)
+#             except Exception as e:
+#                 print(f"    API call error for station {station_id} of resort {resort}: {e}")
+#                 continue
+
+#             # Log the API response (optional)
+#             returnResp(response)
+#             try:
+#                 data = response.json()
+#             except Exception as e:
+#                 print(f"    Error parsing JSON for station {station_id}: {e}")
+#                 continue
+
+#             # Check the response summary.
+#             summary = data.get("SUMMARY", {})
+#             if summary.get("NUMBER_OF_OBJECTS", 0) == 0 and summary.get("RESPONSE_CODE") == 2:
+#                 print(f"    No valid data for station {station_id} (response indicates no station data).")
+#                 continue  # Try the next station
+#             else:
+#                 # Valid data returned; calculate the average precipitation
+#                 observations = data.get('STATION', [{}])[0].get('OBSERVATIONS', {})
+#                 precip_values = observations.get('precip_accum_one_hour_set_1', [])
+
+#                 if precip_values:
+#                     # Filter out None values before calculating the average
+#                     valid_precip_values = [v for v in precip_values if v is not None]
+
+#                     if valid_precip_values:
+#                         # if there is more than one day's worth of data (24 hrs * 15 min intervals), only take the most recent day
+#                         precip = valid_precip_values[-1]
+
+#                         # Update recent_snowfall table
+#                         update_query = """
+#                         UPDATE recent_snowfall
+#                         SET precip_accum_1_hour = %s
+#                         WHERE resort_name = %s;
+#                         """
+#                         try:
+#                             cursor.execute(update_query, (precip, resort))
+#                             conn.commit()
+#                             print(f"    Recorded 1 hr precipitation data in recent_snowfall for resort '{resort}' using station '{station_id}'.")
+#                         except Exception as e:
+#                             print(f"    Error updating 1 hr precip in recent_snowfall for resort '{resort}': {e}")
+
+#                         update_query_colorado_resorts = """
+#                         UPDATE colorado_resorts
+#                         SET precip_accum_1_hour = %s
+#                         WHERE resort_name = %s;
+#                         """
+
+#                         # update valid_stations table
+#                         update_query_valid_stations = """
+#                         UPDATE valid_stations_1hr
+#                         SET station_id = %s
+#                         WHERE resort_name = %s;
+#                         """
+
+#                         try:
+#                             # update colorado_resorts table
+#                             cursor.execute(update_query_colorado_resorts, (precip, resort))
+
+#                             # update valid_stations table
+#                             cursor.execute(update_query_valid_stations, (station_id, resort))
+
+#                             conn.commit()
+#                             print(f"    Recorded 1 hr precipitation data for resort '{resort}' in colorado_resorts using station '{station_id}'.")
+#                             print(f"    Updated valid_stations_1hr with station '{station_id}' for resort '{resort}'.")
+#                         except Exception as e:
+#                             print(f"    Error updating colorado_resorts or valid_stations_1hr for resort '{resort}': {e}")
+
+
+#                         found_valid_station = True
+#                         break  # Exit loop for current resort since we found valid data
+#                     else:
+#                         print(f"    No valid precipitation data available for resort '{resort}' using station '{station_id}'.")
+#                         conn.rollback()
+
+        
+#         if not found_valid_station:
+#             print(f"    No valid station data found for resort '{resort}'.")
+#             upsert_query = """
+#                         UPDATE recent_snowfall
+#                         SET precip_accum_1_hour = %s
+#                         WHERE resort_name = %s;
+#             """
+#             try:
+#                 cursor.execute(upsert_query, (0.0, resort))
+#                 conn.commit()
+#                 print(f"    Set precip_accum_1_hour to NULL for resort '{resort}' due to lack of valid data.")
+#             except Exception as e:
+#                 print(f"    Error updating recent_snowfall for resort '{resort}' with NULL data: {e}")
+
+#         #break
+        
+    
+#     cursor.close()
+#     conn.close()
+
+
 def get_recent_snowfall_1_hr():
     """
-    For each resort in colorado_resorts, iterate through the stations stored
-    in its dedicated station table (ordered by distance). For each station, make
-    an API call (with variable 'precip_accum_one_hour_set_1' in MM) and check the response.
-    If the response does not indicate "no data" (i.e. NUMBER_OF_OBJECTS is 0 and RESPONSE_CODE is 2),
-    then record the JSON result in the recent_snowfall table and break out of the station loop.
-    Otherwise, proceed to the next closest station.
+    For each resort in colorado_resorts, try the station stored in valid_stations_1hr first.
+    If it fails, iterate through the stations stored in its dedicated station table (ordered by distance).
+    For each station, make an API call for 'precip_accum_one_hour' in MM.
+    If valid, update the recent_snowfall and colorado_resorts tables and break.
     """
     
-    # Connect to the database to query the resorts.
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    # Get all resort names from the colorado_resorts table.
+
     query = 'SELECT resort_name FROM "colorado_resorts";'
     cursor.execute(query)
-    resorts = cursor.fetchall()  # Each row is a tuple like (resort_name,)
-    
+    resorts = cursor.fetchall()
+
     for res_row in resorts:
-        
         resort = res_row[0]
         print(f"\nProcessing resort: {resort}")
-        
-        # Generate a safe table name for the stations of this resort.
         station_table = safe_table_name(resort)
-        
-        # Query the station table for this resort, ordered by distance ascending.
+
+        # Get station from valid_stations_1hr first
+        get_valid_station_query = """
+            SELECT station_id FROM valid_stations_1hr WHERE resort_name = %s;
+        """
+        cursor.execute(get_valid_station_query, (resort,))
+        valid_station_row = cursor.fetchone()
+        valid_station_id = valid_station_row[0] if valid_station_row else None
+
+        stations_to_try = []
+
+        if valid_station_id:
+            print(f"  Trying preferred valid station {valid_station_id} for resort {resort}...")
+            stations_to_try.append(valid_station_id)
+
         try:
             conn_st = get_db_connection()
             cur_st = conn_st.cursor()
@@ -224,103 +391,97 @@ def get_recent_snowfall_1_hr():
             print(f"Error querying station table '{station_table}' for resort '{resort}': {e}")
             continue
 
+        all_station_ids = [row[0] for row in station_rows]
+        if valid_station_id in all_station_ids:
+            all_station_ids.remove(valid_station_id)
+        stations_to_try.extend(all_station_ids)
+
         found_valid_station = False
-        # Iterate through the stations (from closest to furthest)
-        for st_row in station_rows:
-            station_id = st_row[0]
+        for station_id in stations_to_try:
             print(f"  Trying station {station_id} for resort {resort}...")
-            
-            # Build the API URL for precip_accum_one_hour
-            # Here, recent=10000 means the most recent # of mins data (can adjust if needed)
+
             url = (
                 f"{API_ROOT}stations/timeseries?stid={station_id}&recent=1000"
                 f"&vars=precip_accum_one_hour&token={API_TOKEN}"
             )
             headers = {'content-type': 'application/json'}
+
             try:
                 response = requests.get(url, headers=headers, timeout=10)
             except Exception as e:
                 print(f"    API call error for station {station_id} of resort {resort}: {e}")
                 continue
 
-            # Log the API response (optional)
             returnResp(response)
+
             try:
                 data = response.json()
             except Exception as e:
                 print(f"    Error parsing JSON for station {station_id}: {e}")
                 continue
 
-            # Check the response summary.
             summary = data.get("SUMMARY", {})
             if summary.get("NUMBER_OF_OBJECTS", 0) == 0 and summary.get("RESPONSE_CODE") == 2:
                 print(f"    No valid data for station {station_id} (response indicates no station data).")
-                continue  # Try the next station
-            else:
-                # Valid data returned; calculate the average precipitation
-                observations = data.get('STATION', [{}])[0].get('OBSERVATIONS', {})
-                precip_values = observations.get('precip_accum_one_hour_set_1', [])
+                continue
 
-                if precip_values:
-                    # Filter out None values before calculating the average
-                    valid_precip_values = [v for v in precip_values if v is not None]
+            observations = data.get('STATION', [{}])[0].get('OBSERVATIONS', {})
+            precip_values = observations.get('precip_accum_one_hour_set_1', [])
 
-                    if valid_precip_values:
-                        # if there is more than one day's worth of data (24 hrs * 15 min intervals), only take the most recent day
-                        precip = valid_precip_values[-1]
+            if precip_values:
+                valid_precip_values = [v for v in precip_values if v is not None]
 
+                if valid_precip_values:
+                    precip = valid_precip_values[-1]
+
+                    try:
                         # Update recent_snowfall table
-                        update_query = """
-                        UPDATE recent_snowfall
-                        SET precip_accum_1_hour = %s
-                        WHERE resort_name = %s;
-                        """
-                        try:
-                            cursor.execute(update_query, (precip, resort))
-                            conn.commit()
-                            print(f"    Recorded 1 hr precipitation data in recent_snowfall for resort '{resort}' using station '{station_id}'.")
-                        except Exception as e:
-                            print(f"    Error updating 1 hr precip in recent_snowfall for resort '{resort}': {e}")
+                        cursor.execute("""
+                            UPDATE recent_snowfall
+                            SET precip_accum_1_hour = %s
+                            WHERE resort_name = %s;
+                        """, (precip, resort))
 
-                        # update colorado_resorts table
-                        update_query_colorado_resorts = """
-                        UPDATE colorado_resorts
-                        SET precip_accum_1_hour = %s
-                        WHERE resort_name = %s;
-                        """
-                        try:
-                            # update colorado_resorts table
-                            cursor.execute(update_query_colorado_resorts, (precip, resort))
-                            conn.commit()
-                            print(f"    Recorded 1 hr precipitation data for resort '{resort}' in colorado_resorts using station '{station_id}'.")
-                        except Exception as e:
-                            print(f"    Error updating 1 hr precip in colorado_resorts for resort '{resort}': {e}")
+                        # Update colorado_resorts table
+                        cursor.execute("""
+                            UPDATE colorado_resorts
+                            SET precip_accum_1_hour = %s
+                            WHERE resort_name = %s;
+                        """, (precip, resort))
 
+                        # Update valid_stations_1hr table
+                        cursor.execute("""
+                            UPDATE valid_stations_1hr
+                            SET station_id = %s
+                            WHERE resort_name = %s;
+                        """, (station_id, resort))
 
+                        conn.commit()
+                        print(f"    Successfully recorded 1 hr snowfall and updated station for resort '{resort}' using station '{station_id}'.")
                         found_valid_station = True
-                        break  # Exit loop for current resort since we found valid data
-                    else:
-                        print(f"    No valid precipitation data available for resort '{resort}' using station '{station_id}'.")
-                        conn.rollback()
+                        break
 
-        
+                    except Exception as e:
+                        print(f"    Error during DB update for resort '{resort}': {e}")
+                        conn.rollback()
+                else:
+                    print(f"    No valid precipitation values at station '{station_id}'")
+            else:
+                print(f"    No precipitation data at all for station '{station_id}'")
+
         if not found_valid_station:
             print(f"    No valid station data found for resort '{resort}'.")
-            upsert_query = """
-                        UPDATE recent_snowfall
-                        SET precip_accum_1_hour = %s
-                        WHERE resort_name = %s;
-            """
             try:
-                cursor.execute(upsert_query, (0.0, resort))
+                cursor.execute("""
+                    UPDATE recent_snowfall
+                    SET precip_accum_1_hour = %s
+                    WHERE resort_name = %s;
+                """, (0.0, resort))
                 conn.commit()
-                print(f"    Set precip_accum_1_hour to NULL for resort '{resort}' due to lack of valid data.")
+                print(f"    Set precip_accum_1_hour to 0.0 for resort '{resort}' due to lack of valid data.")
             except Exception as e:
-                print(f"    Error updating recent_snowfall for resort '{resort}' with NULL data: {e}")
+                print(f"    Error updating recent_snowfall for resort '{resort}' with 0.0 data: {e}")
 
-        #break
-        
-    
     cursor.close()
     conn.close()
 
@@ -334,7 +495,6 @@ def get_recent_snowfall_1_hr():
 if __name__ == "__main__":
     get_recent_snowfall_24_hr()
     get_recent_snowfall_1_hr()
-    # add_column("recent_snowfall", "precip_accum_1_hour", "NUMERIC")
 
 
 

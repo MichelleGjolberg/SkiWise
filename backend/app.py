@@ -4,9 +4,44 @@ import requests
 import json
 from flask_cors import CORS
 from decimal import Decimal
+from formulations import optimize_ski_resorts
 
 
+# ==========================
+# User Inputs & from API ----------------------> Get from backend
+# ==========================
 
+# Hardcoded Data for 10 Resorts -----------------> Get from backend
+# default values: TODO update to 0/null ?
+num_people = 4
+max_budget = 100
+max_time = 5
+min_snowfall = 1
+cost_importance, time_importance = -5, -5 
+snowfall_importance = 5 # TODO add frontend slider to snowfall_importance and capture variable in backend
+
+# TODO get from results of traffic API call
+miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
+accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
+current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
+
+
+snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2] # TODO call weather API to get recent snowfall (1 hr?) at start location
+snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
+
+# Hardcoded Parameters
+DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
+FUEL_COST = 3                 # Dollars per mile
+MAINTENANCE_FACTOR = 0.10     # 10%
+SNOWFALL_TIME_FACTOR = 0.5   # Random weight added per inch of snowfall
+NORM_MIN = 1 # Normalization range
+NORM_MAX = 5
+
+# Attributes for each resort: miles (both-ways), accidents, snowfall_start, snowfall_end, current_time (seconds)
+resorts_to_optimize = []
+
+# list of all resorts and data
+all_resorts = []
 
 app = Flask(__name__)
 
@@ -61,36 +96,112 @@ def get_mountain():
     data = request.get_json()
     print("Input received:")
 
-    # Extract all fields from the JSON request
+    ### Extract all fields from the JSON request
     user_name = data.get("userName")
-    distance = data.get("distance")
-    people = data.get("people")
-    budget = data.get("budget")
+    distance = float(data.get("distance")) # minutes
+    people = int(data.get("people"))
+    budget = float(data.get("budget"))
     driving_experience = data.get("drivingExperience")
-    fresh_powder_inches = data.get("freshPowder")
+    fresh_powder_inches = float(data.get("freshPowder"))
     pass_type = data.get("passType")
-    cost_importance = data.get("costImportance")
-    time_importance = data.get("timeImportance")
-
-    # Debug print to ensure all values are captured
+    cost_importance = int(data.get("costImportance"))
+    time_importance = int(data.get("timeImportance"))
+    
+    ### Debug print to ensure all values are captured
     print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
           f"Driving Experience: {driving_experience}, Fresh Powder: {fresh_powder_inches}, Pass Type: {pass_type}, "
           f"Cost Importance: {cost_importance}, Time Importance: {time_importance}")
+
+    ### get all resorts
+    all_resorts = get_all_resorts()
+
+    ### filter by meeting min_snowfall requirement
+    filtered_resorts = get_resorts_with_fresh_powder(fresh_powder_inches) # returns a filtered list of resorts that meet min snow requirement
+
+    ### filter by pass type
+    filtered_resorts = get_resorts_with_pass(filtered_resorts, pass_type) # filter by pass type (ikon, epic, none)
+
+
+    ### TODO need to then pass filtered_resorts to cotrip api to get travel times (traffic backend)
+
+
+    ### update global variables with data from frontend user input
+    resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
+    min_snowfall = fresh_powder_inches
+    num_people = people
+    max_budget = budget
+    max_time = distance
+    print(f"resorts_to_optimize: {resorts_to_optimize}")
+    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}")
     
-    resorts_with_snow = get_resorts_with_fresh_powder(fresh_powder_inches) # returns a filtered list of resorts
+    ### pass list of filtered resorts with travel times to optimization function
+    top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time) 
+    #top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance) 
 
-    # store the filtered list in the database
-    store_filtered_resorts(resorts_with_snow)
+    # Print the top resorts in the terminal
+    print("\n=== Top 3 Ski Resorts ===")
+    for rank, resort_name in enumerate(top_3, start=1):
+        idx = resorts_to_optimize.index(resort_name)
+        print(f"\nRank #{rank}:")
+        print(f"  {resort_name}")
+        print(f"  Score: {scores[idx]:.2f}")
+        print(f"  Cost per Person: ${cost[idx]}")
+        print(f"  Travel Time: {time[idx]:.2f} hrs")
+        print(f"  Snowfall: {snowfall_end[idx]} inches")
 
-    # TODO filter by pass type
 
-    # TODO need to then pass them to cotrip api to get travel times (traffic backend)
+    print(f"Top 3 resorts: {top_3}")
 
-    # TODO need to pass list of resorts with travel times to optimization function
+    # Filter the in-memory list to only include those resorts
+    filtered_resorts = [
+        resort for resort in all_resorts
+        if resort["resort_name"] in top_3
+    ]
 
-    # return jsonify({"message": "Input received successfully"}), 200
-    return jsonify({"resorts": resorts_with_snow}), 200 
-    # TOOD do we want to return the list of resorts that meet the min powder requirement?  
+    print(filtered_resorts)
+    # store the filtered list in the database, should only have 3
+    store_filtered_resorts(filtered_resorts)
+
+
+    # call db to select only predicted resorts and wanted columns (for frontend cards) from filtered_resorts, add cols
+    resort_cards_list = build_resort_cards("filtered_resorts")
+
+    # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list (currently null)
+
+
+    return jsonify({"resorts": resort_cards_list}), 200 
+
+
+@app.route("/get_all_resorts", methods=["GET"])
+def api_get_all_resorts():
+    all_resorts_cards = build_resort_cards("colorado_resorts") # get all cards for all resorts in colorado_resorts db
+    return jsonify({"resorts": all_resorts_cards}), 200
+
+
+def get_all_resorts():
+    """
+    Retrieves all resorts from the colorado_resorts table.
+    Returns a list of dictionaries, each representing a resort.
+    """
+    print("Fetching all resorts from colorado_resorts...")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM colorado_resorts;"
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    column_names = [desc[0] for desc in cursor.description]
+
+    resorts = [
+        {col: float(row[idx]) if isinstance(row[idx], Decimal) else row[idx] for idx, col in enumerate(column_names)}
+        for row in rows
+    ]
+
+    cursor.close()
+    conn.close()
+    print(f"Retrieved {len(resorts)} resorts.")
+    return resorts
 
 
 def get_resorts_with_fresh_powder(fresh_powder_inches):
@@ -98,6 +209,7 @@ def get_resorts_with_fresh_powder(fresh_powder_inches):
     Queries the database for resorts with snowfall in the last 24 hours greater than or equal to fresh_powder_inches.
     Converts inches to cm before querying.
     """
+    print("Filtering by fresh powder...")
     fresh_powder_cm = float(fresh_powder_inches) * 2.54 if fresh_powder_inches is not None else 0.0  # Convert to cm
 
     print(f"Getting resorts with ≥ {fresh_powder_cm}cm of fresh powder")
@@ -126,9 +238,32 @@ def get_resorts_with_fresh_powder(fresh_powder_inches):
 
     cursor.close()
     conn.close()
-    print(resort_list)
+    # print(resort_list)
 
     return resort_list  # Return the filtered list of resorts
+
+
+def get_resorts_with_pass(resort_list, pass_type):
+    """
+    Filters the resort list based on the pass type.
+    - If pass_type is "epic", returns resorts where pass_type is "Epic".
+    - If pass_type is "ikon", returns resorts where pass_type is "Ikon".
+    - If pass_type is "none", returns all resorts without filtering.
+    """
+    if pass_type.lower() == "none":
+        print("No filtering applied for pass type.")
+        return resort_list  # No filtering needed
+
+    # Convert pass_type to title case to match database values ("Epic", "Ikon", "Neither")
+    pass_type = pass_type.title()
+
+    # Filter the resorts based on the pass_type column
+    filtered_resorts = [resort for resort in resort_list if resort["pass_type"] == pass_type]
+
+    print(f"Filtered {len(filtered_resorts)} resorts for pass type: {pass_type}")
+
+    return filtered_resorts
+
 
 
 def store_filtered_resorts(resort_list):
@@ -157,9 +292,9 @@ def store_filtered_resorts(resort_list):
     INSERT INTO filtered_resorts (
         resort_name, state, summit, base, vertical, lifts, runs, acres, 
         green_percent, green_acres, blue_percent, blue_acres, black_percent, 
-        black_acres, lat, lon, closest_station, closest_station_id, precip_accum_24_hour
+        black_acres, lat, lon, closest_station, closest_station_id, precip_accum_24_hour, pass_type, logo_path, logo_alt
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     );
     """
 
@@ -169,7 +304,7 @@ def store_filtered_resorts(resort_list):
             resort["lifts"], resort["runs"], resort["acres"], resort["green_percent"], resort["green_acres"],
             resort["blue_percent"], resort["blue_acres"], resort["black_percent"], resort["black_acres"],
             resort["lat"], resort["lon"], resort["closest_station"], resort["closest_station_id"], 
-            resort["precip_accum_24_hour"]
+            resort["precip_accum_24_hour"], resort["pass_type"], resort["logo_path"], resort["logo_alt"]
         )
         for resort in sorted_resort_list
     ]
@@ -183,8 +318,50 @@ def store_filtered_resorts(resort_list):
     conn.close()
 
 
+def build_resort_cards(table_name):
+    """
+    Fetch relevant resort data from filtered_resorts, reshape it to match
+    the frontend card format, and inject distance values from the provided list.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = f"""
+        SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour
+        FROM {table_name}
+        ORDER BY precip_accum_24_hour DESC;
+    """
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    resort_cards = []
+    for idx, row in enumerate(rows):
+        resort_name, lat, lon, logo_path, logo_alt, snowfall = row
+
+        card = {
+            "place": resort_name,
+            "distance": 0, # TODO update when have global distance variable, make sure in same order (maybe make distances a dictionary?)
+            "icon": logo_path,
+            "iconAlt": logo_alt,
+            "endPoint": {
+                "lat": float(lat) if lat else None,
+                "lng": float(lon) if lon else None
+            },
+            "encodedPolyline": None,
+            "snow": float(snowfall) if snowfall else 0.0
+        }
+        resort_cards.append(card)
+
+    cursor.close()
+    conn.close()
+
+    return resort_cards
+
+
 
 if __name__ == "__main__":
     # start flask app
     #print(get_start_coordinates("232 Co Rd 29, Leadville, CO"))
     app.run(host="0.0.0.0", port=8000)
+    # api_get_all_resorts()
+    
