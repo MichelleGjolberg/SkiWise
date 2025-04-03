@@ -3,6 +3,7 @@ import psycopg2
 import requests
 import json
 from flask_cors import CORS
+from get_traffic import calculate_route, get_incidents
 from decimal import Decimal
 from formulations import optimize_ski_resorts
 
@@ -106,6 +107,9 @@ def get_mountain():
     pass_type = data.get("passType")
     cost_importance = int(data.get("costImportance"))
     time_importance = int(data.get("timeImportance"))
+    location=data.get("location")
+    latitude=location.get("latitude")
+    longitude=location.get("longitude")
     
     ### Debug print to ensure all values are captured
     print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
@@ -361,7 +365,6 @@ def build_resort_cards(table_name):
 
 if __name__ == "__main__":
     # start flask app
-    #print(get_start_coordinates("232 Co Rd 29, Leadville, CO"))
     app.run(host="0.0.0.0", port=8000)
     # api_get_all_resorts()
     
