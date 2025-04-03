@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import mapboxgl from 'mapbox-gl';
 
 const MAPBOX_TOKEN = (mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN);
 const Map = () => {
