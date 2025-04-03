@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-const MAPBOX_TOKEN =
-  'pk.eyJ1IjoibWlnajgzMDciLCJhIjoiY202c2xpd3BnMDh5dzJsb2o3bzFseHpxeSJ9.D6qgWbOTK4KegIH5R-I7Cw';
-
+const MAPBOX_TOKEN = (mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN);
 const Map = () => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [mapbox, setMapbox] = useState<any>(null);
