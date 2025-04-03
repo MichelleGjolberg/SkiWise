@@ -1,16 +1,22 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import 'mapbox-gl/dist/mapbox-gl.css'; // Ensure Mapbox CSS is imported
+import 'mapbox-gl/dist/mapbox-gl.css';
+import polyline from '@mapbox/polyline';
 
 type ResortMapProps = {
-  long: number;
-  lat: number;
+  startPoint: { lat: number; lng: number };
+  endPoint: { lat: number; lng: number };
+  encodedPolyline: string;
 };
 
-const MAPBOX_TOKEN =
-  'pk.eyJ1IjoibWlnajgzMDciLCJhIjoiY202c2xpd3BnMDh5dzJsb2o3bzFseHpxeSJ9.D6qgWbOTK4KegIH5R-I7Cw';
+const MAPBOX_TOKEN = (mapboxgl.accessToken =
+  import.meta.env.VITE_MAPBOX_ACCESS_TOKEN);
 
-const ResortMap: React.FC<ResortMapProps> = ({ long, lat }) => {
+const ResortMap: React.FC<ResortMapProps> = ({
+  startPoint,
+  endPoint,
+  encodedPolyline,
+}) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
 
@@ -22,25 +28,66 @@ const ResortMap: React.FC<ResortMapProps> = ({ long, lat }) => {
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v11',
-      center: [long, lat],
+      center: [startPoint.lng, startPoint.lat],
       zoom: 12,
     });
 
     map.on('load', () => {
-      new mapboxgl.Marker({ anchor: 'center' })
-        .setLngLat([long, lat])
+      const decodedCoords = polyline
+        .decode(encodedPolyline)
+        .map(([lat, lng]) => [lng, lat]);
+
+      map.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'LineString',
+            coordinates: decodedCoords,
+          },
+          properties: {},
+        },
+      });
+
+      map.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#0084e3',
+          'line-width': 3,
+        },
+      });
+
+      new mapboxgl.Marker({ color: '#739feb' })
+        .setLngLat([startPoint.lng, startPoint.lat])
+        .setPopup(new mapboxgl.Popup().setText('Start'))
         .addTo(map);
 
-      map.resize();
+      new mapboxgl.Marker({ color: '#739feb' })
+        .setLngLat([endPoint.lng, endPoint.lat])
+        .setPopup(new mapboxgl.Popup().setText('End'))
+        .addTo(map);
+
+      map.fitBounds(
+        decodedCoords.reduce(
+          (bounds, coord) => bounds.extend(coord),
+          new mapboxgl.LngLatBounds(decodedCoords[0], decodedCoords[0])
+        ),
+        { padding: 30 }
+      );
     });
 
     mapRef.current = map;
-
     return () => map.remove();
-  }, [long, lat]);
+  }, [startPoint, endPoint, encodedPolyline]);
 
   return (
-    <div className="relative w-[500px] h-[500px] ">
+    <div className="relative w-[500px] h-[500px]">
       <div className="absolute inset-0 w-full h-full" ref={mapContainerRef} />
     </div>
   );

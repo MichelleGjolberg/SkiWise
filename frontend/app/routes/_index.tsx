@@ -1,25 +1,29 @@
 import type { MetaFunction } from '@remix-run/node';
 import UserInput from '~/components/UserInput';
 import NavBar from '~/components/NavBar';
-import Prediction from '~/components/Prediction';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Footer from '~/components/Footer';
 
 //This is the main page (all .tsx files under routes are singular pages)
 export const meta: MetaFunction = () => {
   return [
-    { title: 'New Remix App' },
-    { name: 'description', content: 'Welcome to Remix!' },
+    { title: 'SkiWise' },
+    { name: 'description', content: 'Find your mountain' },
   ];
 };
 
 export default function Index() {
   const [showContent, setShowContent] = useState(false);
   const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const handleClick = () => {
     setShowContent(true);
     setIsButtonDisabled(true);
+
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   return (
@@ -49,13 +53,8 @@ export default function Index() {
         </div>
       </div>
 
-      <div className="flex-grow z-10">
-        {showContent && (
-          <div className="flex flex-grow justify-center flex-row w-full h-full bg-lightblue  py-5 mt-[-400px] ">
-            <UserInput />
-            <Prediction />
-          </div>
-        )}
+      <div className="flex-grow z-10" ref={contentRef}>
+        {showContent && <UserInput />}
       </div>
       <Footer />
     </div>

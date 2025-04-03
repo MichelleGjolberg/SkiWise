@@ -11,6 +11,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@mapbox/polyline": "^1.2.1",
     "@remix-run/node": "^2.15.3",
     "@remix-run/react": "^2.15.3",
     "@remix-run/serve": "^2.15.3",
@@ -21,6 +22,7 @@
   },
   "devDependencies": {
     "@remix-run/dev": "^2.15.3",
+    "@types/mapbox__polyline": "^1.0.5",
     "@types/mapbox-gl": "^3.4.1",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
