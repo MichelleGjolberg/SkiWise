@@ -18,9 +18,6 @@ describe('UserInput component', () => {
   });
 });
 
-import mapboxgl from 'mapbox-gl';
-// import { vi } from 'vitest';
-
 
 // Mock mapbox-gl
 vi.mock('mapbox-gl', async () => {
