@@ -133,6 +133,9 @@ def get_mountain():
 
     ### filter by pass type
     filtered_resorts = get_resorts_with_pass(filtered_resorts, pass_type) # filter by pass type (ikon, epic, none)
+    print(f"filtered_resorts after pass filtering: {filtered_resorts}")
+    store_resorts(filtered_resorts, "filtered_resorts")
+
 
 
     ### TODO need to then pass filtered_resorts to cotrip api to get travel times (traffic backend)
@@ -166,22 +169,21 @@ def get_mountain():
     print(f"Top 3 resorts: {top_3}")
 
     # Filter the in-memory list to only include those resorts
-    filtered_resorts = [
+    top_3_resorts = [
         resort for resort in all_resorts
         if resort["resort_name"] in top_3
     ]
 
-    print(filtered_resorts)
-    # store the filtered list in the database, should only have 3
-    store_filtered_resorts(filtered_resorts)
+    print(f"top_3_resorts: {top_3_resorts}")
+    # store the filtered list in the database in "top_3_resorts" table, should only have 3
+    store_resorts(top_3_resorts, "top_3_resorts")
 
-    # TODO API calls for resorts in filtered_resorts to get polyline
-    # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list (currently null)
-    get_polyline(latitude, longitude)
+    # call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list 
+    get_polyline(latitude, longitude, "top_3_resorts")
 
 
-    # call db to select only predicted resorts and wanted columns (for frontend cards) from filtered_resorts, add cols
-    resort_cards_list = build_resort_cards("filtered_resorts")
+    # call db to select only predicted resorts and wanted columns (for frontend cards) from top_3_resorts, add cols
+    resort_cards_list = build_resort_cards("top_3_resorts")
 
 
     return jsonify({"resorts": resort_cards_list}), 200 
@@ -281,35 +283,34 @@ def get_resorts_with_pass(resort_list, pass_type):
 
 
 
-def store_filtered_resorts(resort_list):
+def store_resorts(resort_list, table_to_store):
     """
-    Clears the 'filtered_resorts' table and inserts the filtered resorts.
-    If a resort already exists, update its snowfall data.
+    Clears the given table and inserts the filtered resorts.
     """
-
     if not resort_list:
-        print("No resorts to store.")
+        print(f"No resorts to store in {table_to_store}.")
         return
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # clear the table before inserting new data
-    clear_table_query = "DELETE FROM filtered_resorts;"
+    # Clear the given table
+    clear_table_query = f"DELETE FROM {table_to_store};"
     cursor.execute(clear_table_query)
-    print("Cleared existing filtered resorts.")
+    print(f"Cleared existing resorts in {table_to_store}.")
 
-    # sort the resorts by snowfall in descending order
+    # Sort by snowfall
     sorted_resort_list = sorted(resort_list, key=lambda r: r["precip_accum_24_hour"], reverse=True)
 
-    # insert new resort data
-    insert_query = """
-    INSERT INTO filtered_resorts (
+    # Build the INSERT query dynamically using the table name
+    insert_query = f"""
+    INSERT INTO {table_to_store} (
         resort_name, state, summit, base, vertical, lifts, runs, acres, 
         green_percent, green_acres, blue_percent, blue_acres, black_percent, 
-        black_acres, lat, lon, closest_station, closest_station_id, precip_accum_24_hour, pass_type, logo_path, logo_alt
+        black_acres, lat, lon, closest_station, closest_station_id, 
+        precip_accum_24_hour, precip_accum_1_hour, pass_type, logo_path, logo_alt
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     );
     """
 
@@ -319,7 +320,7 @@ def store_filtered_resorts(resort_list):
             resort["lifts"], resort["runs"], resort["acres"], resort["green_percent"], resort["green_acres"],
             resort["blue_percent"], resort["blue_acres"], resort["black_percent"], resort["black_acres"],
             resort["lat"], resort["lon"], resort["closest_station"], resort["closest_station_id"], 
-            resort["precip_accum_24_hour"], resort["pass_type"], resort["logo_path"], resort["logo_alt"]
+            resort["precip_accum_24_hour"], resort["precip_accum_1_hour"], resort["pass_type"], resort["logo_path"], resort["logo_alt"]
         )
         for resort in sorted_resort_list
     ]
@@ -327,7 +328,7 @@ def store_filtered_resorts(resort_list):
     cursor.executemany(insert_query, resort_rows)
     conn.commit()
     
-    print(f"Stored {len(sorted_resort_list)} resorts in filtered_resorts table.")
+    print(f"Stored {len(sorted_resort_list)} resorts in {table_to_store}.")
 
     cursor.close()
     conn.close()
@@ -375,17 +376,18 @@ def build_resort_cards(table_name):
 
 # https://maps.googleapis.com/maps/api/directions/json?origin=39.6995,-105.1162&destination=40.01499,-105.27055&mode=driving&departure_time=now&key=YOUR_API_KEY
 
-def get_polyline(start_lat, start_lng):
+def get_polyline(start_lat, start_lng, table_name):
     """
-    Given the user's start coordinates, generate and update the polyline for each resort in the filtered_resorts table.
+    Given the user's start coordinates, generate and update the polyline for each resort in the given table.
     """
-    print("Fetching polylines from Google Maps API...")
+    print(f"Fetching polylines from Google Maps API for table: {table_name}...")
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Fetch resort names and their lat/lng from filtered_resorts
-    cursor.execute("SELECT resort_name, lat, lon FROM filtered_resorts;")
+    # Fetch resort names and their lat/lng from the specified table
+    select_query = f"SELECT resort_name, lat, lon FROM {table_name};"
+    cursor.execute(select_query)
     resorts = cursor.fetchall()
 
     for resort_name, resort_lat, resort_lng in resorts:
@@ -405,9 +407,9 @@ def get_polyline(start_lat, start_lng):
             if directions_data["status"] == "OK":
                 polyline = directions_data["routes"][0]["overview_polyline"]["points"]
 
-                # Update resort with the polyline
-                update_query = """
-                    UPDATE filtered_resorts
+                # Update the specified table with the polyline
+                update_query = f"""
+                    UPDATE {table_name}
                     SET polyline = %s
                     WHERE resort_name = %s;
                 """
@@ -421,7 +423,8 @@ def get_polyline(start_lat, start_lng):
 
     cursor.close()
     conn.close()
-    print("Polyline updates complete.")
+    print(f"Polyline updates complete for table: {table_name}.")
+
 
 
 
