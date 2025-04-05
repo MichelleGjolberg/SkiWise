@@ -379,6 +379,7 @@ def build_resort_cards(table_name):
 def get_polyline(start_lat, start_lng, table_name):
     """
     Given the user's start coordinates, generate and update the polyline for each resort in the given table.
+    If the initial API call fails, retry using 'Boulder, CO' as origin and 'resort_name, CO' as destination.
     """
     print(f"Fetching polylines from Google Maps API for table: {table_name}...")
 
@@ -386,11 +387,11 @@ def get_polyline(start_lat, start_lng, table_name):
     cursor = conn.cursor()
 
     # Fetch resort names and their lat/lng from the specified table
-    select_query = f"SELECT resort_name, lat, lon FROM {table_name};"
+    select_query = f"SELECT resort_name, lat, lon, state FROM {table_name};"
     cursor.execute(select_query)
     resorts = cursor.fetchall()
 
-    for resort_name, resort_lat, resort_lng in resorts:
+    for resort_name, resort_lat, resort_lng, state in resorts:
         origin = f"{start_lat},{start_lng}"
         destination = f"{resort_lat},{resort_lng}"
         api_url = (
@@ -407,24 +408,43 @@ def get_polyline(start_lat, start_lng, table_name):
             if directions_data["status"] == "OK":
                 polyline = directions_data["routes"][0]["overview_polyline"]["points"]
 
-                # Update the specified table with the polyline
-                update_query = f"""
-                    UPDATE {table_name}
-                    SET polyline = %s
-                    WHERE resort_name = %s;
-                """
-                cursor.execute(update_query, (polyline, resort_name))
-                conn.commit()
-                print(f"Updated polyline for: {resort_name}")
             else:
-                print(f"Error fetching directions for {resort_name}: {directions_data['status']}")
+                # Fallback: use city names instead of lat/lng
+                print(f"Primary route failed for {resort_name}. Trying fallback with city names...")
+                fallback_origin = "Boulder, CO"
+                fallback_destination = f"{resort_name}, {state}"
+
+                fallback_url = (
+                    f"https://maps.googleapis.com/maps/api/directions/json"
+                    f"?origin={fallback_origin}&destination={fallback_destination}&mode=driving"
+                    f"&departure_time=now&key={GMAPS_API_KEY}"
+                )
+                fallback_response = requests.get(fallback_url)
+                fallback_response.raise_for_status()
+                fallback_data = fallback_response.json()
+
+                if fallback_data["status"] == "OK":
+                    polyline = fallback_data["routes"][0]["overview_polyline"]["points"]
+                else:
+                    print(f"Fallback failed for {resort_name}: {fallback_data['status']}")
+                    continue  # Skip updating this resort
+
+            # Update the specified table with the polyline
+            update_query = f"""
+                UPDATE {table_name}
+                SET polyline = %s
+                WHERE resort_name = %s;
+            """
+            cursor.execute(update_query, (polyline, resort_name))
+            conn.commit()
+            print(f"Updated polyline for: {resort_name}")
+
         except Exception as e:
             print(f"Exception fetching polyline for {resort_name}: {e}")
 
     cursor.close()
     conn.close()
     print(f"Polyline updates complete for table: {table_name}.")
-
 
 
 
