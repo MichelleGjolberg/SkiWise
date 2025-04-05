@@ -2,13 +2,19 @@ import pandas as pd
 import psycopg2
 import jsonpickle, json
 import requests
+from dotenv import load_dotenv
+import os
 
-# Synoptic data API
-# key: KuOMm49ZKk4W5zFM2YEVmGID1bIaXFgJKUmJI2tekJ
-# token: fda25733baec41ee90dd23653e94a1a8
+load_dotenv()  # Load variables from .env
 
-API_ROOT = "https://api.synopticdata.com/v2/"
-API_TOKEN = "fda25733baec41ee90dd23653e94a1a8"
+SYNOPTIC_API_ROOT = "https://api.synopticdata.com/v2/"
+
+SYNOPTIC_API_TOKEN = os.getenv("SYNOPTIC_API_TOKEN")
+GMAPS_API_KEY = os.getenv("GMAPS_API_KEY")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+
+
+
 
 def returnResp(response):
     if response.status_code == 200:
@@ -28,7 +34,7 @@ def get_db_connection():
         host="34.46.13.43",
         database="postgres",
         user="postgres",
-        password="letsg0sk!!ng"
+        password=DB_PASSWORD
     )
     print("Successfully connected to server")
     return conn
