@@ -8,6 +8,7 @@ from decimal import Decimal
 from formulations import optimize_ski_resorts
 from dotenv import load_dotenv
 import os
+import math
 
 load_dotenv()  # Load variables from .env
 
@@ -37,7 +38,7 @@ accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7, 3,  1,  2,  0,  5,   1
 current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 1111, 2222, 3333, 4444]  # In seconds
 
 
-snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 3, 4] # TODO call weather API to get recent snowfall (1 hr?) at start location
+# snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 3, 4] # TODO call weather API to get recent snowfall (1 hr?) at start location
 snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 11, 12, 13, 14] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
 
 # Hardcoded Parameters
@@ -100,6 +101,62 @@ def get_start_coordinates(address):
         print(f"Error making API request: {e}")
         return
     
+
+
+import math
+
+# def haversine_distance(lat1, lon1, lat2, lon2):
+#     """Calculate the great-circle distance between two lat/lon points using the Haversine formula."""
+#     R = 6371  # Earth radius in kilometers
+
+#     phi1 = math.radians(lat1)
+#     phi2 = math.radians(lat2)
+#     delta_phi = math.radians(lat2 - lat1)
+#     delta_lambda = math.radians(lon2 - lon1)
+
+#     a = math.sin(delta_phi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(delta_lambda/2)**2
+#     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+#     return R * c  # Distance in kilometers
+
+# def get_closest_stations_by_location(station_list, start_lat, start_long, max_results=None):
+#     """
+#     Returns the list of STIDs from the station_list sorted by distance to the starting location.
+    
+#     Args:
+#         station_list: list of dicts, each with 'STID', 'STID_lat', 'STID_long'
+#         start_lat: float, starting latitude
+#         start_long: float, starting longitude
+#         max_results: optional int, limit number of closest stations returned
+
+#     Returns:
+#         List of station dicts sorted by distance (each dict will have 'STID', 'distance_km', etc.)
+#     """
+#     stations_with_distance = []
+    
+#     for station in station_list:
+#         try:
+#             distance = haversine_distance(
+#                 start_lat, start_long,
+#                 float(station['STID_lat']),
+#                 float(station['STID_long'])
+#             )
+#             station_with_distance = {
+#                 **station,
+#                 'distance_km': distance
+#             }
+#             stations_with_distance.append(station_with_distance)
+#         except Exception as e:
+#             print(f"Error calculating distance for station {station.get('STID')}: {e}")
+#             continue
+
+#     # Sort by distance
+#     sorted_stations = sorted(stations_with_distance, key=lambda x: x['distance_km'])
+
+#     if max_results:
+#         return sorted_stations[:max_results]
+#     return sorted_stations
+
     
 @app.route("/get_mountain", methods=["POST"])
 def get_mountain():
@@ -136,6 +193,22 @@ def get_mountain():
     print(f"filtered_resorts after pass filtering: {filtered_resorts}")
     store_resorts(filtered_resorts, "filtered_resorts")
 
+    ### TODO need to get 1 hr snowfall at start and end locations (end = at each resort)
+    snowfall_end = [resort.get("precip_accum_1_hour", 0.0) for resort in filtered_resorts]
+
+    # start_closest_stations = get_closest_stations_to_coordinates(latitude, longitude)
+    # print(f"start_closest_stations: {start_closest_stations}")
+
+    stations_1_hr = get_all_1_hr_stations()
+
+    closest_1hr_stations_to_start = get_closest_stations_by_location(stations_1_hr, 40.01791680728027, -105.27065695880714)
+
+    snowfall_start = get_snowfall_from_stations(closest_1hr_stations_to_start)
+    print(f"snowfall_start: {snowfall_start}")
+
+    # checking that stations are ordered correctly
+    # for s in closest_1hr_stations_to_start:
+    #     print(f"{s['stid']} - {s['distance_km']:.2f} km")
 
 
     ### TODO need to then pass filtered_resorts to cotrip api to get travel times (traffic backend)
@@ -147,8 +220,9 @@ def get_mountain():
     num_people = people
     max_budget = budget
     max_time = distance
+
     print(f"resorts_to_optimize: {resorts_to_optimize}")
-    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}")
+    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}, snowfall_end: {snowfall_end}, snowfall_start: {snowfall_start}, accidents: {accidents}")
     
     ### pass list of filtered resorts with travel times to optimization function
     top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time) 
@@ -280,7 +354,6 @@ def get_resorts_with_pass(resort_list, pass_type):
     print(f"Filtered {len(filtered_resorts)} resorts for pass type: {pass_type}")
 
     return filtered_resorts
-
 
 
 def store_resorts(resort_list, table_to_store):
@@ -447,9 +520,164 @@ def get_polyline(start_lat, start_lng, table_name):
     print(f"Polyline updates complete for table: {table_name}.")
 
 
+def get_closest_stations_to_coordinates(latitude, longitude):
+    """
+    For the given lat/long, call the Synoptic API with a 20-mile radius and limit of 50.
+    Return a list of the closest 50 station STIDs.
+    """
+    print(f"Getting closest stations to (Lat: {latitude}, Lon: {longitude})")
+    radius_miles = 20
+    limit_count = 50
+    url = (
+        f"{SYNOPTIC_API_ROOT}stations/metadata?"
+        f"token={SYNOPTIC_API_TOKEN}&radius={latitude},{longitude},{radius_miles}&limit={limit_count}"
+    )
+    headers = {'content-type': 'application/json'}
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        print(f"API call error for coordinates {latitude}, {longitude}: {e}")
+        return []
+
+    if "STATION" in data and len(data["STATION"]) > 0:
+        stations = data["STATION"]
+        print(f"Found {len(stations)} stations for coordinates {latitude}, {longitude}")
+        return [station["STID"] for station in stations if "STID" in station]
+    else:
+        print(f"No station data available for coordinates {latitude}, {longitude}")
+        return []
+
+
+
+def get_snowfall_from_stations(start_closest_stations):
+    """
+    Go through the list of STIDs stored in start_closest_stations and make an API call for each
+    to try to get the 1-hr snowfall (precip_accum_one_hour). Return the first valid result found.
+    If none are found, return 0.0.
+    """
+    print("Checking 1-hour snowfall at starting location...")
+
+    for station in start_closest_stations:
+        station_id = station['stid']
+        print(f"  Trying station {station_id}...")
+
+        url = (
+            f"{SYNOPTIC_API_ROOT}stations/timeseries?stid={station_id}&recent=1000"
+            f"&vars=precip_accum_one_hour&token={SYNOPTIC_API_TOKEN}"
+        )
+        headers = {'content-type': 'application/json'}
+        print(f"  API URL: {url}")
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+        except Exception as e:
+            print(f"    Error fetching/parsing data for station {station_id}: {e}")
+            continue
+
+        station_data = data.get('STATION', [])
+        if not station_data:
+            print(f"    No station data returned for station {station_id}")
+            continue
+
+        observations = station_data[0].get('OBSERVATIONS', {})
+
+        precip_values = observations.get('precip_accum_one_hour_set_1', [])
+
+        if precip_values:
+            valid_precip_values = [v for v in precip_values if v is not None]
+            if valid_precip_values:
+                precip = valid_precip_values[-1]
+                print(f"    Found valid 1-hr snowfall: {precip} mm at station {station_id}")
+                return precip
+            else:
+                print(f"    No valid 1-hr precipitation values at station {station_id}")
+        else:
+            print(f"    No precipitation data at all for station {station_id}")
+
+    print("  No valid 1-hr snowfall found at any nearby station. Defaulting to 0.0.")
+    return 0.0
+
+
+def get_all_1_hr_stations():
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = 'SELECT * FROM station_locations_snowfall_1_hr;'
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    # Get column names
+    colnames = [desc[0] for desc in cursor.description]
+
+    result = [dict(zip(colnames, row)) for row in rows]
+
+    cursor.close()
+    conn.close()
+
+    return result
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """Calculate the great-circle distance between two lat/lon points using the Haversine formula."""
+    R = 6371  # Earth radius in kilometers
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(delta_lambda/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c  # Distance in kilometers
+
+
+def get_closest_stations_by_location(station_list, start_lat, start_long, max_results=None):
+    """
+    Returns the list of STIDs from the station_list sorted by distance to the starting location.
+    
+    Args:
+        station_list: list of dicts, each with 'STID', 'STID_lat', 'STID_long'
+        start_lat: float, starting latitude
+        start_long: float, starting longitude
+        max_results: optional int, limit number of closest stations returned
+
+    Returns:
+        List of station dicts sorted by distance (each dict will have 'STID', 'distance_km', etc.)
+    """
+    stations_with_distance = []
+    
+    for station in station_list:
+        try:
+            distance = haversine_distance(
+                start_lat, start_long,
+                float(station['stid_lat']),
+                float(station['stid_long'])
+            )
+            station_with_distance = {
+                **station,
+                'distance_km': distance
+            }
+            stations_with_distance.append(station_with_distance)
+        except Exception as e:
+            print(f"Error calculating distance for station {station.get('STID')}: {e}")
+            continue
+
+    # Sort by distance
+    sorted_stations = sorted(stations_with_distance, key=lambda x: x['distance_km'])
+
+    if max_results:
+        return sorted_stations[:max_results]
+    return sorted_stations
+
 
 if __name__ == "__main__":
     # start flask app
     app.run(host="0.0.0.0", port=8000)
     # api_get_all_resorts()
-    
+    # get_closest_stations_to_coordinates(40.01791680728027, -105.27065695880714)
