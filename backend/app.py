@@ -361,7 +361,8 @@ def build_resort_cards(table_name):
 
     return resort_cards
 
-
+def get_travel_times(start_lat, start_long):
+    return None
 
 if __name__ == "__main__":
     # start flask app
