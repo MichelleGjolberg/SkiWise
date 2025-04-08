@@ -6,6 +6,16 @@ from flask_cors import CORS
 from get_traffic import calculate_route, get_incidents
 from decimal import Decimal
 from formulations import optimize_ski_resorts
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load variables from .env
+
+SYNOPTIC_API_ROOT = "https://api.synopticdata.com/v2/"
+
+SYNOPTIC_API_TOKEN = os.getenv("SYNOPTIC_API_TOKEN")
+GMAPS_API_KEY = os.getenv("GMAPS_API_KEY")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
 
 
 # ==========================
@@ -22,13 +32,13 @@ cost_importance, time_importance = -5, -5
 snowfall_importance = 5 # TODO add frontend slider to snowfall_importance and capture variable in backend
 
 # TODO get from results of traffic API call
-miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
-accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
-current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
+miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220, 30, 21, 40, 57, 46, 105, 72, 83, 85, 220, 33, 44, 55, 66]
+accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7, 3,  1,  2,  0,  5,   1,  0,  2,  0,  7, 3, 2, 3, 4]
+current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 1111, 2222, 3333, 4444]  # In seconds
 
 
-snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2] # TODO call weather API to get recent snowfall (1 hr?) at start location
-snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
+snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 3, 4] # TODO call weather API to get recent snowfall (1 hr?) at start location
+snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 11, 12, 13, 14] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
 
 # Hardcoded Parameters
 DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
@@ -49,7 +59,6 @@ app = Flask(__name__)
 # Enable CORS for all routes or specific origins
 CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
 
-gmaps_API_KEY="AIzaSyAVmTm21eXwuF0FRIopdo-IIiajWOMZlfs"
 
 def get_db_connection():
     print("Getting db connection...")
@@ -57,7 +66,7 @@ def get_db_connection():
         host="34.46.13.43",
         database="postgres",
         user="postgres",
-        password="letsg0sk!!ng"
+        password=DB_PASSWORD
     )
     print("Successfully connected to server")
     return conn
@@ -78,7 +87,7 @@ def get_resort_coordinates(resort_name):
 
 def get_start_coordinates(address):
     address=address.replace(" ", "+")
-    get_coordinates_url=f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={gmaps_API_KEY}"
+    get_coordinates_url=f"https://maps.googleapis.com/maps/api/geocode/json?address={address}&key={GMAPS_API_KEY}"
 
     try:
         response = requests.request("GET", get_coordinates_url)
@@ -166,11 +175,13 @@ def get_mountain():
     # store the filtered list in the database, should only have 3
     store_filtered_resorts(filtered_resorts)
 
+    # TODO API calls for resorts in filtered_resorts to get polyline
+    # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list (currently null)
+    get_polyline(latitude, longitude)
+
 
     # call db to select only predicted resorts and wanted columns (for frontend cards) from filtered_resorts, add cols
     resort_cards_list = build_resort_cards("filtered_resorts")
-
-    # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list (currently null)
 
 
     return jsonify({"resorts": resort_cards_list}), 200 
@@ -214,7 +225,7 @@ def get_resorts_with_fresh_powder(fresh_powder_inches):
     Converts inches to cm before querying.
     """
     print("Filtering by fresh powder...")
-    fresh_powder_cm = float(fresh_powder_inches) * 2.54 if fresh_powder_inches is not None else 0.0  # Convert to cm
+    fresh_powder_cm = float(fresh_powder_inches) * 25.4 if fresh_powder_inches is not None else 0.0  # Convert to mm
 
     print(f"Getting resorts with ≥ {fresh_powder_cm}cm of fresh powder")
 
@@ -331,7 +342,7 @@ def build_resort_cards(table_name):
     cursor = conn.cursor()
 
     query = f"""
-        SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour
+        SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline
         FROM {table_name}
         ORDER BY precip_accum_24_hour DESC;
     """
@@ -340,7 +351,7 @@ def build_resort_cards(table_name):
 
     resort_cards = []
     for idx, row in enumerate(rows):
-        resort_name, lat, lon, logo_path, logo_alt, snowfall = row
+        resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline = row
 
         card = {
             "place": resort_name,
@@ -351,8 +362,8 @@ def build_resort_cards(table_name):
                 "lat": float(lat) if lat else None,
                 "lng": float(lon) if lon else None
             },
-            "encodedPolyline": None,
-            "snow": float(snowfall) if snowfall else 0.0
+            "encodedPolyline": polyline,
+            "snow": float(precip_accum_24_hour) if precip_accum_24_hour else 0.0
         }
         resort_cards.append(card)
 
@@ -360,6 +371,57 @@ def build_resort_cards(table_name):
     conn.close()
 
     return resort_cards
+
+
+# https://maps.googleapis.com/maps/api/directions/json?origin=39.6995,-105.1162&destination=40.01499,-105.27055&mode=driving&departure_time=now&key=YOUR_API_KEY
+
+def get_polyline(start_lat, start_lng):
+    """
+    Given the user's start coordinates, generate and update the polyline for each resort in the filtered_resorts table.
+    """
+    print("Fetching polylines from Google Maps API...")
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Fetch resort names and their lat/lng from filtered_resorts
+    cursor.execute("SELECT resort_name, lat, lon FROM filtered_resorts;")
+    resorts = cursor.fetchall()
+
+    for resort_name, resort_lat, resort_lng in resorts:
+        origin = f"{start_lat},{start_lng}"
+        destination = f"{resort_lat},{resort_lng}"
+        api_url = (
+            f"https://maps.googleapis.com/maps/api/directions/json"
+            f"?origin={origin}&destination={destination}&mode=driving"
+            f"&departure_time=now&key={GMAPS_API_KEY}"
+        )
+
+        try:
+            response = requests.get(api_url)
+            response.raise_for_status()
+            directions_data = response.json()
+
+            if directions_data["status"] == "OK":
+                polyline = directions_data["routes"][0]["overview_polyline"]["points"]
+
+                # Update resort with the polyline
+                update_query = """
+                    UPDATE filtered_resorts
+                    SET polyline = %s
+                    WHERE resort_name = %s;
+                """
+                cursor.execute(update_query, (polyline, resort_name))
+                conn.commit()
+                print(f"Updated polyline for: {resort_name}")
+            else:
+                print(f"Error fetching directions for {resort_name}: {directions_data['status']}")
+        except Exception as e:
+            print(f"Exception fetching polyline for {resort_name}: {e}")
+
+    cursor.close()
+    conn.close()
+    print("Polyline updates complete.")
 
 def get_travel_times(start_lat, start_long):
     return None
