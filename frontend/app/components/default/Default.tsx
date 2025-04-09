@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import ResortCard from './ResortCard';
-import ResortMap from './ResortMap';
+import ResortCardDefault from './ResortCardDefault';
+import ResortMapDefault from './ResortMapDefault';
 
 {
   /*TODO: A function that gets the predicted mountains, this is hard coded*/
@@ -74,21 +74,14 @@ const getPredictedMountains = () => {
 
 const startpoint = { lat: 40.0158361, lng: -105.2792329 };
 
-interface PredictionProps {
-  predictionData: any[] | null;
-}
-const Prediction: React.FC<PredictionProps> = ({ predictionData }) => {
+const Default: React.FC = () => {
   const mountains = getPredictedMountains();
+
   const [selectedMountain, setSelectedMountain] = useState(mountains[0]);
-  console.log(predictionData);
 
   return (
     <div className="flex flex-row">
-      <ResortMap
-        startPoint={startpoint}
-        endPoint={selectedMountain.endPoint}
-        encodedPolyline={selectedMountain.encodedPolyline}
-      />
+      <ResortMapDefault startPoint={startpoint} />
       <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l border-gray-300">
         {mountains.map((mountain, index) => (
           <div
@@ -96,9 +89,8 @@ const Prediction: React.FC<PredictionProps> = ({ predictionData }) => {
             onClick={() => setSelectedMountain(mountain)}
             className="cursor-pointer"
           >
-            <ResortCard
+            <ResortCardDefault
               place={mountain.place}
-              distance={mountain.distance}
               icon={mountain.icon}
               iconAlt={mountain.iconAlt}
               snow={mountain.snow}
@@ -110,4 +102,4 @@ const Prediction: React.FC<PredictionProps> = ({ predictionData }) => {
   );
 };
 
-export default Prediction;
+export default Default;
