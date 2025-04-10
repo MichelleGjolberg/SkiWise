@@ -126,7 +126,7 @@ const UserInput: React.FC = () => {
       }
 
       const data = await response.json();
-      setDefaultData(data);
+      setDefaultData(data.resorts);
       setIsDefault(true);
       console.log('Response from /get_all_resorts:', data.resorts);
     } catch (error) {
