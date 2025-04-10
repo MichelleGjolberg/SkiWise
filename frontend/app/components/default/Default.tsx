@@ -6,6 +6,10 @@ import ResortMapDefault from './ResortMapDefault';
   /*TODO: A function that gets the predicted mountains, this is hard coded*/
 }
 
+interface DefaultProps {
+  defaultData: any[] | null;
+}
+
 const getPredictedMountains = () => {
   return [
     {
@@ -74,7 +78,7 @@ const getPredictedMountains = () => {
 
 const startpoint = { lat: 40.0158361, lng: -105.2792329 };
 
-const Default: React.FC = () => {
+const Default: React.FC<DefaultProps> = ({ defaultData }) => {
   const mountains = getPredictedMountains();
 
   const [selectedMountain, setSelectedMountain] = useState(mountains[0]);

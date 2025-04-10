@@ -78,9 +78,12 @@ interface PredictionProps {
   predictionData: any[] | null;
 }
 const Prediction: React.FC<PredictionProps> = ({ predictionData }) => {
-  const mountains = getPredictedMountains();
+  const mountains =
+    predictionData && predictionData.length > 0
+      ? predictionData
+      : getPredictedMountains();
+
   const [selectedMountain, setSelectedMountain] = useState(mountains[0]);
-  console.log(predictionData);
 
   return (
     <div className="flex flex-row">

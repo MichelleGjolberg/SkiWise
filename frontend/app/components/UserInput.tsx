@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Prediction from '~/components/Prediction';
 import Default from './default/Default';
 
@@ -19,6 +19,7 @@ const UserInput: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [predictionData, setPredictionData] = useState<any[] | null>(null);
   const [isDefault, setIsDefault] = useState(true);
+  const [defaultData, setDefaultData] = useState<any[] | null>(null);
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
@@ -100,11 +101,36 @@ const UserInput: React.FC = () => {
       }
 
       const data = await response.json();
-      setPredictionData(data);
+      setPredictionData(data.resorts);
       setIsDefault(false);
-      console.log('Response from server:', data);
     } catch (error) {
       console.error('Error:', error);
+    }
+  };
+
+  useEffect(() => {
+    get_all_resorts();
+  }, []);
+
+  const get_all_resorts = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/get_all_resorts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch all mountain data');
+      }
+
+      const data = await response.json();
+      setDefaultData(data);
+      setIsDefault(true);
+      console.log('Response from /get_all_resorts:', data.resorts);
+    } catch (error) {
+      console.error('Error fetching all resorts:', error);
     }
   };
 
@@ -270,7 +296,11 @@ const UserInput: React.FC = () => {
           Find your mountain
         </button>
       </form>
-      {isDefault ? <Default /> : <Prediction predictionData={predictionData} />}
+      {isDefault ? (
+        <Default defaultData={defaultData} />
+      ) : (
+        <Prediction predictionData={predictionData} />
+      )}
     </div>
   );
 };
