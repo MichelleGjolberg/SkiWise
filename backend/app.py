@@ -33,8 +33,8 @@ cost_importance, time_importance = -5, -5
 snowfall_importance = 5 # TODO add frontend slider to snowfall_importance and capture variable in backend
 
 # TODO get from results of traffic API call
-miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220, 30, 21, 40, 57, 46, 105, 72, 83, 85, 220, 33, 44, 55, 66]
-accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7, 3,  1,  2,  0,  5,   1,  0,  2,  0,  7, 3, 2, 3, 4]
+miles =          []
+accidents =      []
 current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 1111, 2222, 3333, 4444]  # In seconds
 
 
@@ -103,59 +103,7 @@ def get_start_coordinates(address):
     
 
 
-import math
 
-# def haversine_distance(lat1, lon1, lat2, lon2):
-#     """Calculate the great-circle distance between two lat/lon points using the Haversine formula."""
-#     R = 6371  # Earth radius in kilometers
-
-#     phi1 = math.radians(lat1)
-#     phi2 = math.radians(lat2)
-#     delta_phi = math.radians(lat2 - lat1)
-#     delta_lambda = math.radians(lon2 - lon1)
-
-#     a = math.sin(delta_phi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(delta_lambda/2)**2
-#     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
-#     return R * c  # Distance in kilometers
-
-# def get_closest_stations_by_location(station_list, start_lat, start_long, max_results=None):
-#     """
-#     Returns the list of STIDs from the station_list sorted by distance to the starting location.
-    
-#     Args:
-#         station_list: list of dicts, each with 'STID', 'STID_lat', 'STID_long'
-#         start_lat: float, starting latitude
-#         start_long: float, starting longitude
-#         max_results: optional int, limit number of closest stations returned
-
-#     Returns:
-#         List of station dicts sorted by distance (each dict will have 'STID', 'distance_km', etc.)
-#     """
-#     stations_with_distance = []
-    
-#     for station in station_list:
-#         try:
-#             distance = haversine_distance(
-#                 start_lat, start_long,
-#                 float(station['STID_lat']),
-#                 float(station['STID_long'])
-#             )
-#             station_with_distance = {
-#                 **station,
-#                 'distance_km': distance
-#             }
-#             stations_with_distance.append(station_with_distance)
-#         except Exception as e:
-#             print(f"Error calculating distance for station {station.get('STID')}: {e}")
-#             continue
-
-#     # Sort by distance
-#     sorted_stations = sorted(stations_with_distance, key=lambda x: x['distance_km'])
-
-#     if max_results:
-#         return sorted_stations[:max_results]
-#     return sorted_stations
 
     
 @app.route("/get_mountain", methods=["POST"])
@@ -216,8 +164,6 @@ def get_mountain():
     #     print(f"{s['stid']} - {s['distance_km']:.2f} km")
 
 
-    ### TODO need to then pass filtered_resorts to cotrip api to get travel times (traffic backend)
-
 
     ### update global variables with data from frontend user input
     resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
@@ -226,13 +172,15 @@ def get_mountain():
     ### pass filtered_resorts to cotrip api to get travel times (traffic backend)
     current_time, miles= get_travel_times(latitude, longitude, resorts_to_optimize)
 
+    # TODO is filtered_resorts (local) updated with distances here ??
+
     min_snowfall = fresh_powder_inches
     num_people = people
     max_budget = budget
     max_time = distance
     accidents=[0 for i in range(len(resorts_to_optimize))]
     print(f"resorts_to_optimize: {resorts_to_optimize}")
-    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}, snowfall_end: {snowfall_end}, snowfall_start: {snowfall_start}, accidents: {accidents}")
+    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}, snowfall_end: {snowfall_end}, snowfall_start: {snowfall_start}, miles: {miles}, accidents: {accidents}")
     
     ### pass list of filtered resorts with travel times to optimization function
     top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time) 
@@ -252,11 +200,16 @@ def get_mountain():
 
     print(f"Top 3 resorts: {top_3}")
 
-    # Filter the in-memory list to only include those resorts
+
+    # Get fresh resort data from DB with updated distances
+    updated_filtered_resorts = get_filtered_resorts_from_db()
+
+    # Filter only the top 3
     top_3_resorts = [
-        resort for resort in all_resorts
+        resort for resort in updated_filtered_resorts
         if resort["resort_name"] in top_3
     ]
+
 
     print(f"top_3_resorts: {top_3_resorts}")
     # store the filtered list in the database in "top_3_resorts" table, should only have 3
@@ -391,9 +344,9 @@ def store_resorts(resort_list, table_to_store):
         resort_name, state, summit, base, vertical, lifts, runs, acres, 
         green_percent, green_acres, blue_percent, blue_acres, black_percent, 
         black_acres, lat, lon, closest_station, closest_station_id, 
-        precip_accum_24_hour, precip_accum_1_hour, pass_type, logo_path, logo_alt
+        precip_accum_24_hour, precip_accum_1_hour, pass_type, logo_path, logo_alt, distance
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     );
     """
 
@@ -403,7 +356,7 @@ def store_resorts(resort_list, table_to_store):
             resort["lifts"], resort["runs"], resort["acres"], resort["green_percent"], resort["green_acres"],
             resort["blue_percent"], resort["blue_acres"], resort["black_percent"], resort["black_acres"],
             resort["lat"], resort["lon"], resort["closest_station"], resort["closest_station_id"], 
-            resort["precip_accum_24_hour"], resort["precip_accum_1_hour"], resort["pass_type"], resort["logo_path"], resort["logo_alt"]
+            resort["precip_accum_24_hour"], resort["precip_accum_1_hour"], resort["pass_type"], resort["logo_path"], resort["logo_alt"], resort["distance"]
         )
         for resort in sorted_resort_list
     ]
@@ -482,7 +435,7 @@ def get_polyline(start_lat, start_lng, table_name):
             f"?origin={origin}&destination={destination}&mode=driving"
             f"&departure_time=now&key={GMAPS_API_KEY}"
         )
-        print(api_url)
+        # print(api_url)
 
         try:
             response = requests.get(api_url)
@@ -686,34 +639,100 @@ def get_closest_stations_by_location(station_list, start_lat, start_long, max_re
         return sorted_stations[:max_results]
     return sorted_stations
 
+
+# def get_travel_times(start_lat, start_long, resort_names):
+#     """
+#     Fetchs both time taken to reach the ski resort as well as distance to the ski resort
+#     """
+#     print("Fetching travel times to all colorado_resorts...")
+#     current_times=[]
+#     miles=[]
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     # Create a tuple of resort names for the SQL IN clause
+#     placeholders = ', '.join(["%s"] * len(resort_names))
+#     query = f"SELECT resort_name, lat, lon FROM colorado_resorts WHERE resort_name IN ({placeholders}) ORDER BY resort_name;"
+    
+#     cursor.execute(query, resort_names)
+#     rows = cursor.fetchall()
+
+#     for row in rows:
+#         travel_details=calculate_route(f"{start_lat},{start_long}", f"{row[1]},{row[2]}")["routes"][0]
+#         current_times.append(travel_details["summary"]["travelTimeInSeconds"])
+#         miles.append(travel_details["summary"]["lengthInMeters"]*0.00062137)
+
+#     cursor.close()
+#     conn.close()
+#     print(f"Retrieved travel information.")
+#     return current_times, miles
+
 def get_travel_times(start_lat, start_long, resort_names):
     """
-    Fetchs both time taken to reach the ski resort as well as distance to the ski resort
+    Fetch both time taken to reach the ski resort as well as distance to the ski resort,
+    preserving the order of resort_names. Also update the filtered_resorts table with distances.
     """
     print("Fetching travel times to all colorado_resorts...")
-    current_times=[]
-    miles=[]
+    travel_info = {}  # temp dict to store results by resort name
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Create a tuple of resort names for the SQL IN clause
+
     placeholders = ', '.join(["%s"] * len(resort_names))
-    query = f"SELECT resort_name, lat, lon FROM colorado_resorts WHERE resort_name IN ({placeholders}) ORDER BY resort_name;"
+    query = f"SELECT resort_name, lat, lon FROM colorado_resorts WHERE resort_name IN ({placeholders});"
     
     cursor.execute(query, resort_names)
     rows = cursor.fetchall()
 
     for row in rows:
-        travel_details=calculate_route(f"{start_lat},{start_long}", f"{row[1]},{row[2]}")["routes"][0]
-        current_times.append(travel_details["summary"]["travelTimeInSeconds"])
-        miles.append(travel_details["summary"]["lengthInMeters"]*0.00062137)
+        resort_name, lat, lon = row
+        travel_details = calculate_route(f"{start_lat},{start_long}", f"{lat},{lon}")["routes"][0]
+        travel_time = travel_details["summary"]["travelTimeInSeconds"]
+        distance_miles = travel_details["summary"]["lengthInMeters"] * 0.00062137
+
+        travel_info[resort_name] = {
+            "time": travel_time,
+            "miles": distance_miles
+        }
+
+        # Update the distance in the filtered_resorts table
+        update_query = """
+            UPDATE filtered_resorts
+            SET distance = %s
+            WHERE resort_name = %s;
+        """
+        cursor.execute(update_query, (distance_miles, resort_name))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(f"Retrieved travel information and updated filtered_resorts.")
+
+    # Reconstruct ordered lists
+    current_times = [travel_info[name]["time"] for name in resort_names]
+    miles = [travel_info[name]["miles"] for name in resort_names]
+
+    return current_times, miles
+
+
+def get_filtered_resorts_from_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM filtered_resorts;"
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    colnames = [desc[0] for desc in cursor.description]
+
+    result = [dict(zip(colnames, row)) for row in rows]
 
     cursor.close()
     conn.close()
-    print(f"Retrieved travel information.")
-    return current_times, miles
+    return result
+
 
 if __name__ == "__main__":
     # start flask app
     app.run(host="0.0.0.0", port=8000)
     # api_get_all_resorts()
     # get_closest_stations_to_coordinates(40.01791680728027, -105.27065695880714)
+    
