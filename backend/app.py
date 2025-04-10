@@ -130,6 +130,11 @@ def get_mountain():
 
     ### filter by meeting min_snowfall requirement
     filtered_resorts = get_resorts_with_fresh_powder(fresh_powder_inches) # returns a filtered list of resorts that meet min snow requirement
+    
+    if filtered_resorts is None or len(filtered_resorts)==0:
+        print("No resorts have the required powder so running optimization for all resorts")
+        filtered_resorts=all_resorts
+        print(filtered_resorts)
 
     ### filter by pass type
     filtered_resorts = get_resorts_with_pass(filtered_resorts, pass_type) # filter by pass type (ikon, epic, none)
@@ -138,7 +143,7 @@ def get_mountain():
     resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
     resorts_to_optimize.sort()
 
-    ### TODO need to then pass filtered_resorts to cotrip api to get travel times (traffic backend)
+    ### pass filtered_resorts to cotrip api to get travel times (traffic backend)
     current_time, miles= get_travel_times(latitude, longitude, resorts_to_optimize)
 
     min_snowfall = fresh_powder_inches
@@ -426,6 +431,9 @@ def get_polyline(start_lat, start_lng):
     print("Polyline updates complete.")
 
 def get_travel_times(start_lat, start_long, resort_names):
+    """
+    Fetchs both time taken to reach the ski resort as well as distance to the ski resort
+    """
     print("Fetching travel times to all colorado_resorts...")
     current_times=[]
     miles=[]
