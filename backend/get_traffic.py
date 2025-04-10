@@ -1,6 +1,10 @@
 import requests
+from dotenv import load_dotenv
+import os
 
-API_KEY="iW3m3lAiRjbucexnuzXmkeffjsOS7LJk"
+load_dotenv()  # Load variables from .env
+
+API_KEY=os.getenv("TRAFFIC_API_KEY")
 
 def calculate_route(start, dest):
     calc_route_url=f"https://api.tomtom.com/routing/1/calculateRoute/{start}:{dest}/json?key={API_KEY}"
@@ -26,9 +30,9 @@ def get_incidents(bleft, tright):
         return
 
 
-# start="40.0129328,-105.2709401"
-# dest="40.7527498,-102.3819569"
+# start="39.7392,-104.9903"
+# dest="38.8353,-104.8216"
 
 # start="4.8854592519716675,52.36934334773164"
 # dest="4.897883244144765,52.37496348620152"
-#get_incidents(start, dest)
+#print(get_incidents(start, dest))
