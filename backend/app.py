@@ -472,6 +472,7 @@ def get_polyline(start_lat, start_lng, table_name):
             f"?origin={origin}&destination={destination}&mode=driving"
             f"&departure_time=now&key={GMAPS_API_KEY}"
         )
+        print(api_url)
 
         try:
             response = requests.get(api_url)
