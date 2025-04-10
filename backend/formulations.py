@@ -120,7 +120,7 @@ def optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, 
         print(f"  Normalized Cost: {normalized_cost[i]:.2f}")
         print(f"  Normalized Time: {normalized_time[i]:.2f}")
 
-        if cost_per_person[i] <= max_budget and travel_time[i] <= max_time and snowfall_end[i] >= min_snowfall:
+        if cost_per_person[i] <= max_budget and travel_time[i] <= max_time:
             selected_resorts.append((i, score))
 
     # Rank resorts by score
