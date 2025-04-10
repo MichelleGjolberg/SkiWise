@@ -9,6 +9,8 @@ from formulations import optimize_ski_resorts
 from dotenv import load_dotenv
 import os
 import math
+from datetime import datetime, timedelta
+import subprocess
 
 load_dotenv()  # Load variables from .env
 
@@ -18,6 +20,9 @@ SYNOPTIC_API_TOKEN = os.getenv("SYNOPTIC_API_TOKEN")
 GMAPS_API_KEY = os.getenv("GMAPS_API_KEY")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
+
+last_snowfall_update = None  # Global variable to track last update time
+UPDATE_INTERVAL = timedelta(hours=1)  # How often to refresh snowfall data
 
 # ==========================
 # User Inputs & from API ----------------------> Get from backend
@@ -102,14 +107,26 @@ def get_start_coordinates(address):
         return
     
 
-
-
-
     
 @app.route("/get_mountain", methods=["POST"])
 def get_mountain():
     data = request.get_json()
     print("Input received:")
+
+    maybe_update_snowfall_data() # check if snowfall data has been updated within the past hour
+
+    # clear the top_3 table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+
+    # Clear the given table
+    clear_table_query = f"DELETE FROM top_3_resorts;"
+    cursor.execute(clear_table_query)
+    print(f"Cleared existing resorts in top_3_resorts.")
+    cursor.close()
+    conn.close()
+
 
     ### Extract all fields from the JSON request
     user_name = data.get("userName")
@@ -379,20 +396,22 @@ def build_resort_cards(table_name):
     cursor = conn.cursor()
 
     query = f"""
-        SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline
+        SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline, distance
         FROM {table_name}
         ORDER BY precip_accum_24_hour DESC;
     """
     cursor.execute(query)
     rows = cursor.fetchall()
 
+    # rows = rows in top_3_resorts
+
     resort_cards = []
     for idx, row in enumerate(rows):
-        resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline = row
+        resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline, distance = row
 
         card = {
             "place": resort_name,
-            "distance": 0, # TODO update when have global distance variable, make sure in same order (maybe make distances a dictionary?)
+            "distance": int(distance), # TODO update when have global distance variable, make sure in same order (maybe make distances a dictionary?)
             "icon": logo_path,
             "iconAlt": logo_alt,
             "endPoint": {
@@ -532,7 +551,7 @@ def get_snowfall_from_stations(start_closest_stations):
             f"&vars=precip_accum_one_hour&token={SYNOPTIC_API_TOKEN}"
         )
         headers = {'content-type': 'application/json'}
-        print(f"  API URL: {url}")
+        #print(f"  API URL: {url}")
 
         try:
             response = requests.get(url, headers=headers, timeout=10)
@@ -728,6 +747,22 @@ def get_filtered_resorts_from_db():
     cursor.close()
     conn.close()
     return result
+
+
+def maybe_update_snowfall_data():
+    global last_snowfall_update
+
+    now = datetime.utcnow()
+    if last_snowfall_update is None or (now - last_snowfall_update > UPDATE_INTERVAL):
+        print("Updating snowfall data...")
+        try:
+            subprocess.run(["python3", "recent_snowfall_backend.py"], check=True)
+            last_snowfall_update = now
+            print("Snowfall data updated.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error updating snowfall data: {e}")
+    else:
+        print("Snowfall data is up-to-date.")
 
 
 if __name__ == "__main__":
