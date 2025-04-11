@@ -15,7 +15,7 @@ const getPredictedMountains = () => {
       iconAlt: 'Copper logo',
       endPoint: { lat: 39.50323660321131, lng: -106.15144380943651 },
       encodedPolyline:
-        "y_gsF`toaSpCS?fJ~DdAnMK`TxB^tPvAjCpJ{F`FkEfHeOlOo`@`VoSna@kWrZyShKmV`d@sc@ds@{o@pMyHh[vD~QgAzNgH|Xc[d[tGfZtSlYyArk@vDti@kIxPaCjUfEnsAj`@`kCpAbhBKxWoBlZwThXgT~KwF~^xDjo@~IbRgJpMgOtq@wP~UsWjNiKbcA_@~^dJtd@bF~Y|Nv^tRbf@pCp`@fAlRhGpThPrRfDpn@yQz_@fHzOtHfE|QpD|^bLbY`DzK|FzB`^jBfGfEFxKbPvYvG~G_BbQIdTqFtOkLaAcEdH}@lLfGvJfIj_@sGz\sIhYUvKxGxSgGv_@_QzSgClZxH|KdPcEvIvMdJdCjFQjClFjD~Zi[bx@s@zo@rCre@aBv\oFfV~ItStHp_@tIjCnFtItIpJ{CnV`FhSmEhIeJ~D`@~SjB~]yGhMzJzW_TzVuS`FkEfWiBdIqMfKkCzQhD`YhGbAxLxLfHdIfCxCbFxYpMhOrAfOkL~OG`RwCvHwNrFuCtQgK`IeKxQvB|OhMb^aBzNHtS~CrZeOj`@gDp^vG|Ob@zPfGntAcDbX~FbW|Ll\|Dhd@cFd}@nArw@gStsAkWniAiPhVaLtXeMzOq@xTiWp`AmU~m@yF``Ae@nnA}Hl_By@xu@lKtn@nKxbAhJ`m@~Pr]d`@z]ni@fgBjXxe@ba@pUtUxTzRpH~u@rPdaA~Il^ra@j\vi@`Lzw@`Lb[|H`V?zO}Hx`AiC|mAxCpq@Mfm@rHnjBoGxa@bEle@jQjnAuJpkAac@xmAeMbk@w@|d@bArfAvEdb@|`@x{@pWl[vw@x|@pCjt@hJ|VnBja@UnuBnA|{@|HbY^rrAxOzg@jBnq@dHhVvU~VfUlPdQrWr_@xhA~JxXtIhp@jEbp@jMd[jQ`g@hKr`@nF|d@zUno@rg@~~@h]hjAjOl[nU`Lp^uAxTdCb_@zg@hZvTnUh`@jp@pl@ti@`fA~e@xUpd@hKfSvMn\d~@xRjVfTxBtPjDnObNhY|VfRbJhRrAt`@nUjVoCv]yVrUPbPtStM~RrSfFbi@}IfNlA|JaF~KeK|DrExJlJqBtVfCdLoDnII~\fEjGvLiD`BgFzAbFrCf[zAc@hAuKbIoPvCtUlE~Q`DcE~OaNpAdFeBzFyA|RrL|LfCx@oBgEp@_KjFrKGcFlAcF~DnEtLzHdHzJ}CwPiA}GhF~@fM\`OJrElA|CkGpDzJ`CcCrHs@JrB|FuCaBeI~HpFbRi@zDMdAvFfFfWzC|Jx@s@ZaG",
+        '_cbpF~v{fS{BaQtA_NRmI{HmHuDoGyBIaFnDiDL_BJmK|BiD`Aw]bHkR|CqF]{L_H_Sg\\_GqFqKeCgSnGgTjPaR`E_LmD}LsK{d@kK}]iS}Q}TsPuGoQSoRiNeQyb@oP{c@{TcPwt@eRcKaGyI}Mem@mdAoo@ql@uR_\\_WaRsU{^{MwKcFuAcWt@eQ^_IcB{QkN{Pud@_Rsn@sKsZsZod@sRkh@kMeh@{AcZiI_SeMmVkDkRmLkXkEqg@i@sXaFcZwPsg@gOg\\gLw`@uYec@oZ_S{MiRmB}JsBgu@aNk`@m@ir@Paa@wJuj@E_eA@{_A{Ai}@qKkXcB{WiB{_@sQcV__@e_@u[s_@aN}WmWwn@aBes@o@qfA`Jyd@be@_tAxMixA{E{d@oKmh@}D{YjFe\\sAiaBmFi`@fAgj@iDsgAzDaw@lHu{@q@mT_Vuq@wIgo@mPsZka@ml@sLcImRoB{i@kEkd@yIye@_PaXgWi^wRuMaQuIoTeWu{@kTin@eQmO{UeWmL_j@oH}n@uMsy@iE}h@bEey@bHm{AH{kA|Bgg@jEkWpSkf@rUyw@KmRdGeOvJ_KrD}KnFyL|JuNpHsTjN{s@zG{j@xKeq@gBog@x@i]fDqi@kBk\\iM}^gG_Qw@uM`Dgd@qGiaAGeSkFqJHkZnLc]fEcSyDgTi@qOhDqQ_HmRgBeSpJ{VxXwFj_@{VdTyJfLiMfN}N`McXlIeVhK{l@xEsYfG_NxKmUbCwSwAek@jEg`@U}RcD_X~@wMdH_P~EuKtA_P~@et@rHw[~[ma@lIgNxKue@vB}\\oNe]}To`@_b@uj@uEcR~RyqAfHee@vB}p@fNeh@pIuv@dEum@_Cge@vGwq@bK{e@xNuTbA{r@zLi_AlBa|@mLsQoUiTca@kZ{X{R}KoI[kE~BmCtB\\?xHmQpPsNdJkVlB}PTuGpCoIxSuIlJsDfL}G|XeG~Gav@vn@{u@jo@cDnMi@rNuLxSeLbCoE_Ac[cN_Nm@m]zKaPpE_RaFwZcS_\\sC{m@yCoMoA}KqG{Z}Sk^aHuc@wHkK{CmVKcb@@aPbC}IpJaKnO}T`HaX|F_SzKePhQ}Sn@mv@gLySTgN`Lub@h]kUvGqk@@_gBDgrAGsU{@md@_MiaAoXuNZo[tHyPtB}[oDyPQuLjCyIAeOkLw\\gQoJKgJbH_OjRaRhJge@sCcMjCcTzR}z@xt@}J|JeGjOcKzOkc@lX_W|OmNjJ_ErLuVjj@iX|PcKnEkKhCgCl@q@qFoBuOs@aGqEdAkE`A',
       snow: 6,
     },
 
@@ -74,8 +74,14 @@ const getPredictedMountains = () => {
 
 const startpoint = { lat: 40.0158361, lng: -105.2792329 };
 
-const Prediction: React.FC = () => {
-  const mountains = getPredictedMountains();
+interface PredictionProps {
+  predictionData: any[] | null;
+}
+const Prediction: React.FC<PredictionProps> = ({ predictionData }) => {
+  const mountains =
+    predictionData && predictionData.length > 0
+      ? predictionData
+      : getPredictedMountains();
 
   const [selectedMountain, setSelectedMountain] = useState(mountains[0]);
 

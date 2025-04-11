@@ -130,20 +130,27 @@ def get_mountain():
 
     ### filter by meeting min_snowfall requirement
     filtered_resorts = get_resorts_with_fresh_powder(fresh_powder_inches) # returns a filtered list of resorts that meet min snow requirement
+    
+    if filtered_resorts is None or len(filtered_resorts)==0:
+        print("No resorts have the required powder so running optimization for all resorts")
+        filtered_resorts=all_resorts
+        print(filtered_resorts)
 
     ### filter by pass type
     filtered_resorts = get_resorts_with_pass(filtered_resorts, pass_type) # filter by pass type (ikon, epic, none)
 
-
-    ### TODO need to then pass filtered_resorts to cotrip api to get travel times (traffic backend)
-
-
     ### update global variables with data from frontend user input
     resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
+    resorts_to_optimize.sort()
+
+    ### pass filtered_resorts to cotrip api to get travel times (traffic backend)
+    current_time, miles= get_travel_times(latitude, longitude, resorts_to_optimize)
+
     min_snowfall = fresh_powder_inches
     num_people = people
     max_budget = budget
     max_time = distance
+    accidents=[0 for i in range(len(resorts_to_optimize))]
     print(f"resorts_to_optimize: {resorts_to_optimize}")
     print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}")
     
@@ -423,7 +430,31 @@ def get_polyline(start_lat, start_lng):
     conn.close()
     print("Polyline updates complete.")
 
+def get_travel_times(start_lat, start_long, resort_names):
+    """
+    Fetchs both time taken to reach the ski resort as well as distance to the ski resort
+    """
+    print("Fetching travel times to all colorado_resorts...")
+    current_times=[]
+    miles=[]
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    # Create a tuple of resort names for the SQL IN clause
+    placeholders = ', '.join(["%s"] * len(resort_names))
+    query = f"SELECT resort_name, lat, lon FROM colorado_resorts WHERE resort_name IN ({placeholders}) ORDER BY resort_name;"
+    
+    cursor.execute(query, resort_names)
+    rows = cursor.fetchall()
 
+    for row in rows:
+        travel_details=calculate_route(f"{start_lat},{start_long}", f"{row[1]},{row[2]}")["routes"][0]
+        current_times.append(travel_details["summary"]["travelTimeInSeconds"])
+        miles.append(travel_details["summary"]["lengthInMeters"]*0.00062137)
+
+    cursor.close()
+    conn.close()
+    print(f"Retrieved travel information.")
+    return current_times, miles
 
 if __name__ == "__main__":
     # start flask app

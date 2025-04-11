@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Prediction from '~/components/Prediction';
+import Default from './default/Default';
 
 //Need to fetch data for default list when page load
 //When submit boutton is clicked => new predicted data should show
@@ -16,6 +17,9 @@ const UserInput: React.FC = () => {
   const [costImportance, setCostImportance] = useState(5);
   const [timeImportance, setTimeImportance] = useState(5);
   const [error, setError] = useState<string | null>(null);
+  const [predictionData, setPredictionData] = useState<any[] | null>(null);
+  const [isDefault, setIsDefault] = useState(true);
+  const [defaultData, setDefaultData] = useState<any[] | null>(null);
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
@@ -31,26 +35,39 @@ const UserInput: React.FC = () => {
       return;
     }
     setError(null);
-    console.log({ userName, distance, people, budget, drivingExperience, freshPowder, passType, costImportance, timeImportance,});
+    console.log({
+      userName,
+      distance,
+      people,
+      budget,
+      drivingExperience,
+      freshPowder,
+      passType,
+      costImportance,
+      timeImportance,
+    });
 
     if (!navigator.geolocation) {
-      console.error("Geolocation is not supported by this browser.");
+      console.error('Geolocation is not supported by this browser.');
       return;
     }
-  
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
         sendFormData(latitude, longitude);
       },
       (error) => {
-        console.warn("Error getting location:", error);
-        
+        console.warn('Error getting location:', error);
+
         // Default location (Example: Denver, CO)
         const defaultLatitude = 40.0189728;
         const defaultLongitude = -105.2747406;
-        console.log("Using default location (Boulder, CO):", { latitude: defaultLatitude, longitude: defaultLongitude });
-  
+        console.log('Using default location (Boulder, CO):', {
+          latitude: defaultLatitude,
+          longitude: defaultLongitude,
+        });
+
         sendFormData(defaultLatitude, defaultLongitude);
       }
     );
@@ -67,26 +84,53 @@ const UserInput: React.FC = () => {
       passType,
       costImportance,
       timeImportance,
-      location: { latitude, longitude },  // Send either user or default location
+      location: { latitude, longitude }, // Send either user or default location
     };
-  
+
     try {
-      const response = await fetch("http://localhost:8000/get_mountain", {
-        method: "POST",
+      const response = await fetch('http://localhost:8000/get_mountain', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),
       });
-  
+
       if (!response.ok) {
-        throw new Error("Failed to fetch mountain data");
+        throw new Error('Failed to fetch mountain data');
       }
-  
+
       const data = await response.json();
-      console.log("Response from server:", data);
+      setPredictionData(data.resorts);
+      setIsDefault(false);
     } catch (error) {
-      console.error("Error:", error);
+      console.error('Error:', error);
+    }
+  };
+
+  useEffect(() => {
+    get_all_resorts();
+  }, []);
+
+  const get_all_resorts = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/get_all_resorts', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch all mountain data');
+      }
+
+      const data = await response.json();
+      setDefaultData(data.resorts);
+      setIsDefault(true);
+      console.log('Response from /get_all_resorts:', data.resorts);
+    } catch (error) {
+      console.error('Error fetching all resorts:', error);
     }
   };
 
@@ -252,7 +296,11 @@ const UserInput: React.FC = () => {
           Find your mountain
         </button>
       </form>
-      <Prediction />
+      {isDefault ? (
+        <Default defaultData={defaultData} />
+      ) : (
+        <Prediction predictionData={predictionData} />
+      )}
     </div>
   );
 };
