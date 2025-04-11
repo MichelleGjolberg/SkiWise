@@ -20,6 +20,10 @@ const UserInput: React.FC = () => {
   const [predictionData, setPredictionData] = useState<any[] | null>(null);
   const [isDefault, setIsDefault] = useState(true);
   const [defaultData, setDefaultData] = useState<any[] | null>(null);
+  const [distanceError, setDistanceError] = useState('');
+  const [peopleError, setPeopleError] = useState('');
+  const [budgetError, setBudgetError] = useState('');
+
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
@@ -30,10 +34,33 @@ const UserInput: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    let hasError = false;
+
     if (!userName || !distance) {
       setError('Please fill in all required fields.');
       return;
     }
+
+    setDistanceError('');
+    setPeopleError('');
+    setBudgetError('');
+    setError(null);
+
+    if (Number(distance) <= 0) {
+      setDistanceError('Driving time should be > 0 minutes');
+      hasError = true;
+    }
+    if (Number(people) <= 0) {
+      setPeopleError('Number of people should be > 0');
+      hasError = true;
+    }
+    if (Number(budget) <= 0) {
+      setBudgetError('Budget should be > 0 dollars');
+      hasError = true;
+    }
+
+    if (hasError) return
+
     setError(null);
     console.log({
       userName,
@@ -163,6 +190,7 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
+          {distanceError && <p className="text-red-500 text-sm">{distanceError}</p>}
         </label>
 
         {/* Number of People */}
@@ -176,6 +204,7 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
+          {peopleError && <p className="text-red-500 text-sm">{peopleError}</p>}
         </label>
 
         {/* Max Budget */}
@@ -189,6 +218,7 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
+          {budgetError && <p className="text-red-500 text-sm">{budgetError}</p>}
         </label>
 
         {/* Driving Experience */}
