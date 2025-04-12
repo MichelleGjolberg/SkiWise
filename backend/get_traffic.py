@@ -1,10 +1,8 @@
 import requests
-from dotenv import load_dotenv
 import os
 
-load_dotenv()  # Load variables from .env
 
-API_KEY=os.getenv("TRAFFIC_API_KEY")
+API_KEY=os.environ.get("TRAFFIC_API_KEY")
 
 def calculate_route(start, dest):
     calc_route_url=f"https://api.tomtom.com/routing/1/calculateRoute/{start}:{dest}/json?key={API_KEY}"

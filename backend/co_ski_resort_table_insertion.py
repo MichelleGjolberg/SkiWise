@@ -2,16 +2,14 @@ import pandas as pd
 import psycopg2
 import jsonpickle, json
 import requests
-from dotenv import load_dotenv
 import os
 
-load_dotenv()  # Load variables from .env
 
 SYNOPTIC_API_ROOT = "https://api.synopticdata.com/v2/"
 
-SYNOPTIC_API_TOKEN = os.getenv("SYNOPTIC_API_TOKEN")
-GMAPS_API_KEY = os.getenv("GMAPS_API_KEY")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
+SYNOPTIC_API_TOKEN = os.environ.get("SYNOPTIC_API_TOKEN")
+GMAPS_API_KEY = os.environ.get("GMAPS_API_KEY")
+DB_PASSWORD = os.environ.get("DB_PASSWORD")
 
 
 

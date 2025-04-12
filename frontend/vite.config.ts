@@ -9,6 +9,10 @@ declare module "@remix-run/node" {
 }
 
 export default defineConfig({
+  server: {
+    host: process.env.VITE_DEV_SERVER_HOST || "127.0.0.1",
+    port: 5173,
+  },
   plugins: [
     remix({
       future: {
