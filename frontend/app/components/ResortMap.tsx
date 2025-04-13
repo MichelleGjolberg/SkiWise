@@ -27,9 +27,9 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v11',
+      style: 'mapbox://styles/mapbox/outdoors-v12',
       center: [startPoint.lng, startPoint.lat],
-      zoom: 12,
+      zoom: 9,
     });
 
     map.on('load', () => {
