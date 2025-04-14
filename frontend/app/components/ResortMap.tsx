@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import polyline from '@mapbox/polyline';
 
 type ResortMapProps = {
-  startPoint: { lat: number; lng: number };
+  startPoint: any[];
   endPoint: { lat: number; lng: number };
   encodedPolyline: string;
 };
@@ -19,6 +19,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
 }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const start = startPoint ? startPoint : [40.0189728, -105.2747406];
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -28,7 +29,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/outdoors-v12',
-      center: [startPoint.lng, startPoint.lat],
+      center: [start[1], start[0]],
       zoom: 9,
     });
 
@@ -64,7 +65,7 @@ const ResortMap: React.FC<ResortMapProps> = ({
       });
 
       new mapboxgl.Marker({ color: '#739feb' })
-        .setLngLat([startPoint.lng, startPoint.lat])
+        .setLngLat([start[1], start[0]])
         .setPopup(new mapboxgl.Popup().setText('Start'))
         .addTo(map);
 
