@@ -23,6 +23,7 @@ const UserInput: React.FC = () => {
   const [distanceError, setDistanceError] = useState('');
   const [peopleError, setPeopleError] = useState('');
   const [budgetError, setBudgetError] = useState('');
+  const [startpoint, setStartpoint] = useState([40.0189728, -105.2747406]); //startingpoint is denver as a default
 
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
@@ -82,6 +83,7 @@ const UserInput: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        setStartpoint([latitude, longitude]);
         sendFormData(latitude, longitude);
       },
       (error) => {
@@ -329,7 +331,7 @@ const UserInput: React.FC = () => {
       {isDefault ? (
         <Default defaultData={defaultData} />
       ) : (
-        <Prediction predictionData={predictionData} />
+        <Prediction predictionData={predictionData} startpoint={startpoint} />
       )}
     </div>
   );
