@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import Prediction from '~/components/Prediction';
 import Default from './default/Default';
 
-//Need to fetch data for default list when page load
-//When submit boutton is clicked => new predicted data should show
-
 const UserInput: React.FC = () => {
   const [userName, setUserName] = useState('');
   const [distance, setDistance] = useState('');
@@ -20,7 +17,7 @@ const UserInput: React.FC = () => {
   const [predictionData, setPredictionData] = useState<any[] | null>(null);
   const [isDefault, setIsDefault] = useState(true);
   const [defaultData, setDefaultData] = useState<any[] | null>(null);
-  const [startpoint, setStartpoint] = useState([40.0189728, -105.2747406]); //startingpoint is denver as a default
+  const [startpoint, setStartpoint] = useState([40.0189728, -105.2747406]); //startingpoint is Boulder as a default
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import polyline from '@mapbox/polyline';
 
 type ResortMapProps = {
   startPoint: { lat: number; lng: number };
@@ -21,10 +20,12 @@ const ResortMap: React.FC<ResortMapProps> = ({ startPoint }) => {
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/outdoors-v12',
+      style: 'mapbox://styles/mapbox/outdoors-v11',
       center: [startPoint.lng, startPoint.lat],
       zoom: 9,
     });
+
+    map.addControl(new mapboxgl.NavigationControl());
 
     map.on('load', () => {
       new mapboxgl.Marker({ color: '#739feb' })

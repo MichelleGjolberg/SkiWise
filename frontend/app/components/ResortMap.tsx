@@ -5,8 +5,8 @@ import polyline from '@mapbox/polyline';
 
 type ResortMapProps = {
   startPoint: any[];
-  endPoint: { lat: number; lng: number };
-  encodedPolyline: string;
+  endPoint?: { lat: number; lng: number };
+  encodedPolyline?: string;
 };
 
 const MAPBOX_TOKEN = (mapboxgl.accessToken =
@@ -28,59 +28,63 @@ const ResortMap: React.FC<ResortMapProps> = ({
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/outdoors-v12',
+      style: 'mapbox://styles/mapbox/outdoors-v11',
       center: [start[1], start[0]],
       zoom: 9,
     });
 
     map.on('load', () => {
-      const decodedCoords = polyline
-        .decode(encodedPolyline)
-        .map(([lat, lng]) => [lng, lat]);
+      if (encodedPolyline) {
+        const decodedCoords = polyline
+          .decode(encodedPolyline)
+          .map(([lat, lng]) => [lng, lat]);
 
-      map.addSource('route', {
-        type: 'geojson',
-        data: {
-          type: 'Feature',
-          geometry: {
-            type: 'LineString',
-            coordinates: decodedCoords,
+        map.addSource('route', {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: decodedCoords,
+            },
+            properties: {},
           },
-          properties: {},
-        },
-      });
+        });
 
-      map.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-          'line-join': 'round',
-          'line-cap': 'round',
-        },
-        paint: {
-          'line-color': '#0084e3',
-          'line-width': 3,
-        },
-      });
+        map.addLayer({
+          id: 'route',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#0084e3',
+            'line-width': 3,
+          },
+        });
+
+        map.fitBounds(
+          decodedCoords.reduce(
+            (bounds, coord) => bounds.extend(coord),
+            new mapboxgl.LngLatBounds(decodedCoords[0], decodedCoords[0])
+          ),
+          { padding: 30 }
+        );
+      }
 
       new mapboxgl.Marker({ color: '#739feb' })
         .setLngLat([start[1], start[0]])
         .setPopup(new mapboxgl.Popup().setText('Start'))
         .addTo(map);
 
-      new mapboxgl.Marker({ color: '#739feb' })
-        .setLngLat([endPoint.lng, endPoint.lat])
-        .setPopup(new mapboxgl.Popup().setText('End'))
-        .addTo(map);
-
-      map.fitBounds(
-        decodedCoords.reduce(
-          (bounds, coord) => bounds.extend(coord),
-          new mapboxgl.LngLatBounds(decodedCoords[0], decodedCoords[0])
-        ),
-        { padding: 30 }
-      );
+      if (endPoint) {
+        new mapboxgl.Marker({ color: '#739feb' })
+          .setLngLat([endPoint.lng, endPoint.lat])
+          .setPopup(new mapboxgl.Popup().setText('End'))
+          .addTo(map);
+      }
     });
 
     mapRef.current = map;

@@ -45,7 +45,7 @@ const Default: React.FC<DefaultProps> = ({ defaultData }) => {
     return (
       <div className="flex flex-row">
         <ResortMapDefault startPoint={startpoint} />
-        <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l border-gray-300">
+        <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l border-gray-300 text-lg ">
           Loading resorts...
         </div>
       </div>
