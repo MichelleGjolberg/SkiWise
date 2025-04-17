@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResortCardDefault from './ResortCardDefault';
 import ResortMapDefault from './ResortMapDefault';
 
@@ -28,9 +28,18 @@ const getPredictedMountains = () => {
 const startpoint = { lat: 40.0158361, lng: -105.2792329 };
 
 const Default: React.FC<DefaultProps> = ({ defaultData }) => {
-  const [selectedMountain, setSelectedMountain] = useState(
-    defaultData?.[0] || null
-  );
+  const [mountains, setMountains] = useState<any[]>([]);
+  const [selectedMountain, setSelectedMountain] = useState<any | null>(null);
+
+  // Initialize data once defaultData is loaded
+  useEffect(() => {
+    const data =
+      defaultData && defaultData.length > 0
+        ? defaultData
+        : getPredictedMountains();
+    setMountains(data);
+    setSelectedMountain(data[0]);
+  }, [defaultData]);
 
   if (!defaultData || defaultData.length === 0) {
     return (
@@ -42,9 +51,10 @@ const Default: React.FC<DefaultProps> = ({ defaultData }) => {
       </div>
     );
   }
+
   return (
     <div className="flex flex-row">
-      <ResortMapDefault startPoint={startpoint} />
+      <ResortMapDefault startPoint={selectedMountain.endPoint} />
       <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l border-gray-300">
         {defaultData.map((mountain, index) => (
           <div

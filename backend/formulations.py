@@ -24,7 +24,6 @@ NORM_MIN = 1 # Normalization range
 NORM_MAX = 5
 
 
-
 # miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
 # accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
 # snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2]
@@ -65,7 +64,7 @@ def calculate_cost_per_person(num_people, miles):
     """Calculate cost per person for each resort."""
     cost_per_person = []
     
-    for i in range(len(miles)):
+    for i in range(num_resorts):
         base_fee = calculate_base_fee(miles[i])
         one_way_cost = miles[i] * FUEL_COST * (1 + MAINTENANCE_FACTOR)
         per_person_cost = base_fee + 2* (one_way_cost / num_people)
@@ -77,9 +76,9 @@ def calculate_travel_time(miles, accidents, snowfall_start, snowfall_end, curren
     """Calculate travel time for each resort for to and fro."""
     travel_time = []
     
-    for i in range(len(miles)):
+    for i in range(num_resorts):
         time_hours = current_time[i] / 3600
-        total_time = 2 * (time_hours + DRIVING_EXPERIENCE_FACTOR * (accidents[i] + SNOWFALL_TIME_FACTOR * (snowfall_start[i] + snowfall_end[i])))
+        total_time = 2 * (time_hours + DRIVING_EXPERIENCE_FACTOR * (accidents[i] + SNOWFALL_TIME_FACTOR * (snowfall_start + snowfall_end[i])))
         travel_time.append(total_time)
     
     return travel_time
@@ -93,6 +92,9 @@ def calculate_travel_time(miles, accidents, snowfall_start, snowfall_end, curren
 def optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time):
     """Optimize ski resorts and return the top 3 choices."""
     # Calculate costs and times
+    global num_resorts
+    num_resorts = len(resorts_to_optimize)
+
     cost_per_person = calculate_cost_per_person(num_people, miles)
     travel_time = calculate_travel_time(miles, accidents, snowfall_start, snowfall_end, current_time)
 
@@ -105,7 +107,7 @@ def optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, 
     selected_resorts = []
     
     print("\n=== Debugging Values ===")
-    for i in range(len(resorts_to_optimize)):
+    for i in range(num_resorts):
         score = snowfall_importance * normalized_snowfall[i] + cost_importance * normalized_cost[i] + time_importance * normalized_time[i]
 
         all_scores.append(score)

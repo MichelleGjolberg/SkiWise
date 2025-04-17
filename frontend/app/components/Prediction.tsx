@@ -72,23 +72,28 @@ const getPredictedMountains = () => {
   ];
 };
 
-const startpoint = { lat: 40.0158361, lng: -105.2792329 };
-
 interface PredictionProps {
   predictionData: any[] | null;
+  startpoint: any[];
 }
-const Prediction: React.FC<PredictionProps> = ({ predictionData }) => {
+const Prediction: React.FC<PredictionProps> = ({
+  predictionData,
+  startpoint,
+}) => {
   const mountains =
     predictionData && predictionData.length > 0
       ? predictionData
       : getPredictedMountains();
 
   const [selectedMountain, setSelectedMountain] = useState(mountains[0]);
+  const start = startpoint ? startpoint : [40.0189728, -105.2747406];
+
+  console.log(selectedMountain);
 
   return (
     <div className="flex flex-row">
       <ResortMap
-        startPoint={startpoint}
+        startPoint={start}
         endPoint={selectedMountain.endPoint}
         encodedPolyline={selectedMountain.encodedPolyline}
       />
