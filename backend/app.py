@@ -113,7 +113,7 @@ def get_mountain():
     data = request.get_json()
     print("Input received:")
 
-    maybe_update_snowfall_data() # check if snowfall data has been updated within the past hour
+    #maybe_update_snowfall_data() # check if snowfall data has been updated within the past hour
 
     # clear the top_3 table
     conn = get_db_connection()
@@ -411,8 +411,7 @@ def build_resort_cards(table_name):
 
         card = {
             "place": resort_name,
-            "distance": int(distance), # TODO update when have global distance variable, make sure in same order (maybe make distances a dictionary?)
-            "icon": logo_path,
+            "distance": int(distance) if distance is not None else 0, # updated
             "iconAlt": logo_alt,
             "endPoint": {
                 "lat": float(lat) if lat else None,
