@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Expose port 5173
-EXPOSE 5173
+EXPOSE 3000
 
-# Start Nginx
-CMD ["npm", "run", "dev"]
+# Start React App
+CMD ["npm", "run", "start"]
