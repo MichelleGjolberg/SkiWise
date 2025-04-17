@@ -1,0 +1,30 @@
+# Frontend Deployment
+ apiVersion: apps/v1
+ kind: Deployment
+ metadata:
+   name: frontend-deployment
+ spec:
+   replicas: 1
+   selector:
+     matchLabels:
+       app: frontend
+   template:
+     metadata:
+       labels:
+         app: frontend
+     spec:
+       containers:
+       - name: frontend
+         image: mukund0004/skiwisefrontend:v4.6.1
+         envFrom:
+            - configMapRef:
+                name: frontend-config
+         ports:
+         - containerPort: 3000
+         resources:
+           requests:
+             cpu: 100m
+             memory: 128Mi
+           limits:
+             cpu: 250m
+             memory: 256Mi
