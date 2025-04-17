@@ -411,7 +411,7 @@ def build_resort_cards(table_name):
 
         card = {
             "place": resort_name,
-            "distance": int(distance) if distance is not None else 0,
+            "distance": int(distance) if distance is not None else 0, # updated
             "iconAlt": logo_alt,
             "endPoint": {
                 "lat": float(lat) if lat else None,
