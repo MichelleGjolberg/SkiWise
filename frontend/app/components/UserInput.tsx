@@ -21,6 +21,10 @@ const UserInput: React.FC = () => {
   const [isDefault, setIsDefault] = useState(true);
   const [defaultData, setDefaultData] = useState<any[] | null>(null);
   const [startpoint, setStartpoint] = useState([40.0189728, -105.2747406]); //startingpoint is denver as a default
+  const [distanceError, setDistanceError] = useState('');
+  const [peopleError, setPeopleError] = useState('');
+  const [budgetError, setBudgetError] = useState('');
+  const [freshPowderError, setfreshPowderError] = useState('');
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
@@ -31,10 +35,37 @@ const UserInput: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    let hasError = false;
+
     if (!userName || !distance) {
       setError('Please fill in all required fields.');
       return;
     }
+
+    setDistanceError('');
+    setPeopleError('');
+    setBudgetError('');
+    setError(null);
+
+    if (Number(distance) <= 0) {
+      setDistanceError('Driving time should be > 0 minutes');
+      hasError = true;
+    }
+    if (Number(people) <= 0) {
+      setPeopleError('Number of people should be > 0');
+      hasError = true;
+    }
+    if (Number(budget) <= 0) {
+      setBudgetError('Budget should be > 0 dollars');
+      hasError = true;
+    }
+    if (Number(freshPowder) <= 0) {
+      setfreshPowderError('Fresh pow should be > 0" (What were you thinking?)');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
     setError(null);
     console.log({
       userName,
@@ -165,6 +196,9 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
+          {distanceError && (
+            <p className="text-red-500 text-sm">{distanceError}</p>
+          )}
         </label>
 
         {/* Number of People */}
@@ -178,6 +212,7 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
+          {peopleError && <p className="text-red-500 text-sm">{peopleError}</p>}
         </label>
 
         {/* Max Budget */}
@@ -191,6 +226,7 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
+          {budgetError && <p className="text-red-500 text-sm">{budgetError}</p>}
         </label>
 
         {/* Driving Experience */}
@@ -219,6 +255,9 @@ const UserInput: React.FC = () => {
             onChange={(e) => setFreshPowder(e.target.value)}
             className="border rounded p-2"
           />
+          {freshPowderError && (
+            <p className="text-red-500 text-sm">{freshPowderError}</p>
+          )}
         </label>
         {/* Type of pass */}
         <fieldset className="flex flex-col">
