@@ -16,7 +16,7 @@ DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
 # Hardcoded Parameters
 # ==========================
 
-FUEL_COST = 3                 # Dollars per mile
+FUEL_COST = 3                 # Dollars per gallon
 MAINTENANCE_FACTOR = 0.10     # 10%
 SNOWFALL_TIME_FACTOR = 0.5   # Random weight added per inch of snowfall
 NORM_MIN = 1 # Normalization range
@@ -41,7 +41,7 @@ colorado_ski_resorts = [
 ]
 
 miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
-accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7]
+accidents =      [0,  0,  0,  0,  0,   1,  0,  2,  0,  1]
 snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2]
 snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10]
 current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
