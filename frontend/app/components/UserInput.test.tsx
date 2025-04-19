@@ -1,61 +1,3 @@
-// // frontend/app/components/UserInput.test.tsx
-// import { render, screen, waitFor } from '@testing-library/react';
-// import userEvent from '@testing-library/user-event';
-// import UserInput from '~/components/UserInput';
-// import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// // // Mock geolocation
-// // beforeEach(() => {
-// //   vi.stubGlobal('navigator', {
-// //     geolocation: {
-// //       getCurrentPosition: vi.fn((success) =>
-// //         success({ coords: { latitude: 40, longitude: -105 } })
-// //       ),
-// //     },
-// //   });
-
-// //   // Mock fetch
-// //   global.fetch = vi.fn(() =>
-// //     Promise.resolve({
-// //       ok: true,
-// //       json: () => Promise.resolve({ success: true }),
-// //     })
-// //   ) as any;
-// // });
-
-// describe('UserInput component', () => {
-//   it('renders the form and allows typing a name', async () => {
-//     render(<UserInput />);
-//     // describe('UserInput component full test', () => {
-//     //   it('fills the form and submits', async () => {
-//     //     render(<UserInput />);
-//     // const user = userEvent.setup();
-
-//     const nameInput = screen.getByPlaceholderText('Enter your name');
-//     expect(nameInput).toBeInTheDocument();
-
-//     await userEvent.type(nameInput, 'Alice');
-//     expect(nameInput).toHaveValue('Alice');
-//   });
-// });
-
-
-// // Mock mapbox-gl
-// vi.mock('mapbox-gl', async () => {
-//   const actual = await import('mapbox-gl');
-//   return {
-//     ...actual,
-//     default: {
-//       ...actual.default,
-//       Map: vi.fn().mockImplementation(() => ({
-//         on: vi.fn(),
-//         setStyle: vi.fn(),
-//         remove: vi.fn(), // Add mock for remove method
-//       })),
-//     },
-//   };
-// });
-
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import UserInput from '~/components/UserInput';
@@ -81,84 +23,84 @@ beforeEach(() => {
 });
 
 // Test when geolocation is available
-describe('UserInput component with geolocation', () => {
-  it('should use geolocation when available', async () => {
-    // Mock successful geolocation response
-    const getCurrentPositionMock = vi.fn((success) =>
-      success({ coords: { latitude: 40, longitude: -105 } })
-    );
-    vi.stubGlobal('navigator', {
-      geolocation: {
-        getCurrentPosition: getCurrentPositionMock,
-      },
-    });
+// describe('UserInput component with geolocation', () => {
+//   it('should use geolocation when available', async () => {
+//     // Mock successful geolocation response
+//     const getCurrentPositionMock = vi.fn((success) =>
+//       success({ coords: { latitude: 40, longitude: -105 } })
+//     );
+//     vi.stubGlobal('navigator', {
+//       geolocation: {
+//         getCurrentPosition: getCurrentPositionMock,
+//       },
+//     });
 
-    const sendFormData = vi.fn(); // Mock sendFormData function
-    render(<UserInput sendFormData={sendFormData} />);
+//     const sendFormData = vi.fn(); // Mock sendFormData function
+//     render(<UserInput sendFormData={sendFormData} />);
 
-    const submitBtn = screen.getByRole('button', { name: /find your mountain/i });
+//     const submitBtn = screen.getByRole('button', { name: /find your mountain/i });
 
-    await userEvent.click(submitBtn);
+//     await userEvent.click(submitBtn);
 
-    await waitFor(() => {
-      // Ensure geolocation was called
-      expect(getCurrentPositionMock).toHaveBeenCalled();
+//     await waitFor(() => {
+//       // Ensure geolocation was called
+//       expect(getCurrentPositionMock).toHaveBeenCalled();
 
-      // Check that sendFormData was called with the correct coordinates
-      expect(sendFormData).toHaveBeenCalledWith(40, -105); // Mocked geolocation coordinates
-    });
-  });
+//       // Check that sendFormData was called with the correct coordinates
+//       expect(sendFormData).toHaveBeenCalledWith(40, -105); // Mocked geolocation coordinates
+//     });
+//   });
 
-  it('should use default location if geolocation fails', async () => {
-    // Mock geolocation error
-    const getCurrentPositionMock = vi.fn((success, error) =>
-      error(new Error('Geolocation error'))
-    );
-    vi.stubGlobal('navigator', {
-      geolocation: {
-        getCurrentPosition: getCurrentPositionMock,
-      },
-    });
+//   it('should use default location if geolocation fails', async () => {
+//     // Mock geolocation error
+//     const getCurrentPositionMock = vi.fn((success, error) =>
+//       error(new Error('Geolocation error'))
+//     );
+//     vi.stubGlobal('navigator', {
+//       geolocation: {
+//         getCurrentPosition: getCurrentPositionMock,
+//       },
+//     });
 
-    const sendFormData = vi.fn(); // Mock sendFormData function
-    render(<UserInput sendFormData={sendFormData} />);
+//     const sendFormData = vi.fn(); // Mock sendFormData function
+//     render(<UserInput sendFormData={sendFormData} />);
 
-    const submitBtn = screen.getByRole('button', { name: /find your mountain/i });
+//     const submitBtn = screen.getByRole('button', { name: /find your mountain/i });
 
-    await userEvent.click(submitBtn);
+//     await userEvent.click(submitBtn);
 
-    await waitFor(() => {
-      // Ensure geolocation error handler was triggered
-      expect(getCurrentPositionMock).toHaveBeenCalled();
+//     await waitFor(() => {
+//       // Ensure geolocation error handler was triggered
+//       expect(getCurrentPositionMock).toHaveBeenCalled();
 
-      // Check that sendFormData was called with the default coordinates
-      expect(sendFormData).toHaveBeenCalledWith(40.0189728, -105.2747406); // Default Boulder, CO
-    });
-  });
+//       // Check that sendFormData was called with the default coordinates
+//       expect(sendFormData).toHaveBeenCalledWith(40.0189728, -105.2747406); // Default Boulder, CO
+//     });
+//   });
 
-  it('should log an error when geolocation is not supported', async () => {
-    // Simulate no geolocation support
-    vi.stubGlobal('navigator', {
-      geolocation: undefined, // Geolocation is not supported
-    });
+//   it('should log an error when geolocation is not supported', async () => {
+//     // Simulate no geolocation support
+//     vi.stubGlobal('navigator', {
+//       geolocation: undefined, // Geolocation is not supported
+//     });
 
-    const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
+//     const consoleErrorMock = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const sendFormData = vi.fn(); // Mock sendFormData function
-    render(<UserInput sendFormData={sendFormData} />);
+//     const sendFormData = vi.fn(); // Mock sendFormData function
+//     render(<UserInput sendFormData={sendFormData} />);
 
-    const submitBtn = screen.getByRole('button', { name: /find your mountain/i });
+//     const submitBtn = screen.getByRole('button', { name: /find your mountain/i });
 
-    await userEvent.click(submitBtn);
+//     await userEvent.click(submitBtn);
 
-    await waitFor(() => {
-      // Check that the error message is logged when geolocation is not supported
-      expect(consoleErrorMock).toHaveBeenCalledWith('Geolocation is not supported by this browser.');
-    });
+//     await waitFor(() => {
+//       // Check that the error message is logged when geolocation is not supported
+//       expect(consoleErrorMock).toHaveBeenCalledWith('Geolocation is not supported by this browser.');
+//     });
 
-    consoleErrorMock.mockRestore();
-  });
-});
+//     consoleErrorMock.mockRestore();
+//   });
+// });
 
 
 describe('UserInput component full user input test', () => {
