@@ -20,10 +20,11 @@ const UserInput: React.FC = () => {
   const [predictionData, setPredictionData] = useState<any[] | null>(null);
   const [isDefault, setIsDefault] = useState(true);
   const [defaultData, setDefaultData] = useState<any[] | null>(null);
+  const [startpoint, setStartpoint] = useState([40.0189728, -105.2747406]); //startingpoint is denver as a default
   const [distanceError, setDistanceError] = useState('');
   const [peopleError, setPeopleError] = useState('');
   const [budgetError, setBudgetError] = useState('');
-
+  const [freshPowderError, setfreshPowderError] = useState('');
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
@@ -58,8 +59,12 @@ const UserInput: React.FC = () => {
       setBudgetError('Budget should be > 0 dollars');
       hasError = true;
     }
+    if (Number(freshPowder) <= 0) {
+      setfreshPowderError('Fresh pow should be > 0" (What were you thinking?)');
+      hasError = true;
+    }
 
-    if (hasError) return
+    if (hasError) return;
 
     setError(null);
     console.log({
@@ -82,6 +87,7 @@ const UserInput: React.FC = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        setStartpoint([latitude, longitude]);
         sendFormData(latitude, longitude);
       },
       (error) => {
@@ -190,7 +196,9 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
-          {distanceError && <p className="text-red-500 text-sm">{distanceError}</p>}
+          {distanceError && (
+            <p className="text-red-500 text-sm">{distanceError}</p>
+          )}
         </label>
 
         {/* Number of People */}
@@ -247,6 +255,9 @@ const UserInput: React.FC = () => {
             onChange={(e) => setFreshPowder(e.target.value)}
             className="border rounded p-2"
           />
+          {freshPowderError && (
+            <p className="text-red-500 text-sm">{freshPowderError}</p>
+          )}
         </label>
         {/* Type of pass */}
         <fieldset className="flex flex-col">
@@ -329,7 +340,7 @@ const UserInput: React.FC = () => {
       {isDefault ? (
         <Default defaultData={defaultData} />
       ) : (
-        <Prediction predictionData={predictionData} />
+        <Prediction predictionData={predictionData} startpoint={startpoint} />
       )}
     </div>
   );

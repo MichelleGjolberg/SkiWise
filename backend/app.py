@@ -8,6 +8,9 @@ from decimal import Decimal
 from formulations import optimize_ski_resorts
 from dotenv import load_dotenv
 import os
+import math
+from datetime import datetime, timedelta
+import subprocess
 
 load_dotenv()  # Load variables from .env
 
@@ -17,6 +20,9 @@ SYNOPTIC_API_TOKEN = os.getenv("SYNOPTIC_API_TOKEN")
 GMAPS_API_KEY = os.getenv("GMAPS_API_KEY")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 
+
+last_snowfall_update = None  # Global variable to track last update time
+UPDATE_INTERVAL = timedelta(hours=1)  # How often to refresh snowfall data
 
 # ==========================
 # User Inputs & from API ----------------------> Get from backend
@@ -32,12 +38,12 @@ cost_importance, time_importance = -5, -5
 snowfall_importance = 5 # TODO add frontend slider to snowfall_importance and capture variable in backend
 
 # TODO get from results of traffic API call
-miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220, 30, 21, 40, 57, 46, 105, 72, 83, 85, 220, 33, 44, 55, 66]
-accidents =      [3,  1,  2,  0,  5,   1,  0,  2,  0,  7, 3,  1,  2,  0,  5,   1,  0,  2,  0,  7, 3, 2, 3, 4]
+miles =          []
+accidents =      []
 current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 1111, 2222, 3333, 4444]  # In seconds
 
 
-snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 3, 4] # TODO call weather API to get recent snowfall (1 hr?) at start location
+# snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 3, 4] # TODO call weather API to get recent snowfall (1 hr?) at start location
 snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 11, 12, 13, 14] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
 
 # Hardcoded Parameters
@@ -100,11 +106,27 @@ def get_start_coordinates(address):
         print(f"Error making API request: {e}")
         return
     
+
     
 @app.route("/get_mountain", methods=["POST"])
 def get_mountain():
     data = request.get_json()
     print("Input received:")
+
+    #maybe_update_snowfall_data() # check if snowfall data has been updated within the past hour
+
+    # clear the top_3 table
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+
+    # Clear the given table
+    clear_table_query = f"DELETE FROM top_3_resorts;"
+    cursor.execute(clear_table_query)
+    print(f"Cleared existing resorts in top_3_resorts.")
+    cursor.close()
+    conn.close()
+
 
     ### Extract all fields from the JSON request
     user_name = data.get("userName")
@@ -138,6 +160,27 @@ def get_mountain():
 
     ### filter by pass type
     filtered_resorts = get_resorts_with_pass(filtered_resorts, pass_type) # filter by pass type (ikon, epic, none)
+    print(f"filtered_resorts after pass filtering: {filtered_resorts}")
+    store_resorts(filtered_resorts, "filtered_resorts")
+
+    ### TODO need to get 1 hr snowfall at start and end locations (end = at each resort)
+    snowfall_end = [resort.get("precip_accum_1_hour", 0.0) for resort in filtered_resorts]
+
+    # start_closest_stations = get_closest_stations_to_coordinates(latitude, longitude)
+    # print(f"start_closest_stations: {start_closest_stations}")
+
+    stations_1_hr = get_all_1_hr_stations()
+
+    closest_1hr_stations_to_start = get_closest_stations_by_location(stations_1_hr, 40.01791680728027, -105.27065695880714)
+
+    snowfall_start = get_snowfall_from_stations(closest_1hr_stations_to_start)
+    print(f"snowfall_start: {snowfall_start}")
+
+    # checking that stations are ordered correctly
+    # for s in closest_1hr_stations_to_start:
+    #     print(f"{s['stid']} - {s['distance_km']:.2f} km")
+
+
 
     ### update global variables with data from frontend user input
     resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
@@ -146,13 +189,15 @@ def get_mountain():
     ### pass filtered_resorts to cotrip api to get travel times (traffic backend)
     current_time, miles= get_travel_times(latitude, longitude, resorts_to_optimize)
 
+    # TODO is filtered_resorts (local) updated with distances here ??
+
     min_snowfall = fresh_powder_inches
     num_people = people
     max_budget = budget
     max_time = distance
     accidents=[0 for i in range(len(resorts_to_optimize))]
     print(f"resorts_to_optimize: {resorts_to_optimize}")
-    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}")
+    print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}, snowfall_end: {snowfall_end}, snowfall_start: {snowfall_start}, miles: {miles}, accidents: {accidents}")
     
     ### pass list of filtered resorts with travel times to optimization function
     top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time) 
@@ -172,23 +217,27 @@ def get_mountain():
 
     print(f"Top 3 resorts: {top_3}")
 
-    # Filter the in-memory list to only include those resorts
-    filtered_resorts = [
-        resort for resort in all_resorts
+
+    # Get fresh resort data from DB with updated distances
+    updated_filtered_resorts = get_filtered_resorts_from_db()
+
+    # Filter only the top 3
+    top_3_resorts = [
+        resort for resort in updated_filtered_resorts
         if resort["resort_name"] in top_3
     ]
 
-    print(filtered_resorts)
-    # store the filtered list in the database, should only have 3
-    store_filtered_resorts(filtered_resorts)
 
-    # TODO API calls for resorts in filtered_resorts to get polyline
-    # TODO call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list (currently null)
-    get_polyline(latitude, longitude)
+    print(f"top_3_resorts: {top_3_resorts}")
+    # store the filtered list in the database in "top_3_resorts" table, should only have 3
+    store_resorts(top_3_resorts, "top_3_resorts")
+
+    # call polyline API with start_location and the lat/long of the 3 predicted resorts and update polyline variable in resort_cards_list 
+    get_polyline(latitude, longitude, "top_3_resorts")
 
 
-    # call db to select only predicted resorts and wanted columns (for frontend cards) from filtered_resorts, add cols
-    resort_cards_list = build_resort_cards("filtered_resorts")
+    # call db to select only predicted resorts and wanted columns (for frontend cards) from top_3_resorts, add cols
+    resort_cards_list = build_resort_cards("top_3_resorts")
 
 
     return jsonify({"resorts": resort_cards_list}), 200 
@@ -287,36 +336,34 @@ def get_resorts_with_pass(resort_list, pass_type):
     return filtered_resorts
 
 
-
-def store_filtered_resorts(resort_list):
+def store_resorts(resort_list, table_to_store):
     """
-    Clears the 'filtered_resorts' table and inserts the filtered resorts.
-    If a resort already exists, update its snowfall data.
+    Clears the given table and inserts the filtered resorts.
     """
-
     if not resort_list:
-        print("No resorts to store.")
+        print(f"No resorts to store in {table_to_store}.")
         return
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # clear the table before inserting new data
-    clear_table_query = "DELETE FROM filtered_resorts;"
+    # Clear the given table
+    clear_table_query = f"DELETE FROM {table_to_store};"
     cursor.execute(clear_table_query)
-    print("Cleared existing filtered resorts.")
+    print(f"Cleared existing resorts in {table_to_store}.")
 
-    # sort the resorts by snowfall in descending order
+    # Sort by snowfall
     sorted_resort_list = sorted(resort_list, key=lambda r: r["precip_accum_24_hour"], reverse=True)
 
-    # insert new resort data
-    insert_query = """
-    INSERT INTO filtered_resorts (
+    # Build the INSERT query dynamically using the table name
+    insert_query = f"""
+    INSERT INTO {table_to_store} (
         resort_name, state, summit, base, vertical, lifts, runs, acres, 
         green_percent, green_acres, blue_percent, blue_acres, black_percent, 
-        black_acres, lat, lon, closest_station, closest_station_id, precip_accum_24_hour, pass_type, logo_path, logo_alt
+        black_acres, lat, lon, closest_station, closest_station_id, 
+        precip_accum_24_hour, precip_accum_1_hour, pass_type, logo_path, logo_alt, distance
     ) VALUES (
-        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
     );
     """
 
@@ -326,7 +373,7 @@ def store_filtered_resorts(resort_list):
             resort["lifts"], resort["runs"], resort["acres"], resort["green_percent"], resort["green_acres"],
             resort["blue_percent"], resort["blue_acres"], resort["black_percent"], resort["black_acres"],
             resort["lat"], resort["lon"], resort["closest_station"], resort["closest_station_id"], 
-            resort["precip_accum_24_hour"], resort["pass_type"], resort["logo_path"], resort["logo_alt"]
+            resort["precip_accum_24_hour"], resort["precip_accum_1_hour"], resort["pass_type"], resort["logo_path"], resort["logo_alt"], resort["distance"]
         )
         for resort in sorted_resort_list
     ]
@@ -334,7 +381,7 @@ def store_filtered_resorts(resort_list):
     cursor.executemany(insert_query, resort_rows)
     conn.commit()
     
-    print(f"Stored {len(sorted_resort_list)} resorts in filtered_resorts table.")
+    print(f"Stored {len(sorted_resort_list)} resorts in {table_to_store}.")
 
     cursor.close()
     conn.close()
@@ -349,20 +396,22 @@ def build_resort_cards(table_name):
     cursor = conn.cursor()
 
     query = f"""
-        SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline
+        SELECT resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline, distance
         FROM {table_name}
         ORDER BY precip_accum_24_hour DESC;
     """
     cursor.execute(query)
     rows = cursor.fetchall()
 
+    # rows = rows in top_3_resorts
+
     resort_cards = []
     for idx, row in enumerate(rows):
-        resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline = row
+        resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline, distance = row
 
         card = {
             "place": resort_name,
-            "distance": 0, # TODO update when have global distance variable, make sure in same order (maybe make distances a dictionary?)
+            "distance": int(distance) if distance is not None else 0, # updated
             "icon": logo_path,
             "iconAlt": logo_alt,
             "endPoint": {
@@ -382,20 +431,22 @@ def build_resort_cards(table_name):
 
 # https://maps.googleapis.com/maps/api/directions/json?origin=39.6995,-105.1162&destination=40.01499,-105.27055&mode=driving&departure_time=now&key=YOUR_API_KEY
 
-def get_polyline(start_lat, start_lng):
+def get_polyline(start_lat, start_lng, table_name):
     """
-    Given the user's start coordinates, generate and update the polyline for each resort in the filtered_resorts table.
+    Given the user's start coordinates, generate and update the polyline for each resort in the given table.
+    If the initial API call fails, retry using 'Boulder, CO' as origin and 'resort_name, CO' as destination.
     """
-    print("Fetching polylines from Google Maps API...")
+    print(f"Fetching polylines from Google Maps API for table: {table_name}...")
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Fetch resort names and their lat/lng from filtered_resorts
-    cursor.execute("SELECT resort_name, lat, lon FROM filtered_resorts;")
+    # Fetch resort names and their lat/lng from the specified table
+    select_query = f"SELECT resort_name, lat, lon, state FROM {table_name};"
+    cursor.execute(select_query)
     resorts = cursor.fetchall()
 
-    for resort_name, resort_lat, resort_lng in resorts:
+    for resort_name, resort_lat, resort_lng, state in resorts:
         origin = f"{start_lat},{start_lng}"
         destination = f"{resort_lat},{resort_lng}"
         api_url = (
@@ -403,6 +454,7 @@ def get_polyline(start_lat, start_lng):
             f"?origin={origin}&destination={destination}&mode=driving"
             f"&departure_time=now&key={GMAPS_API_KEY}"
         )
+        # print(api_url)
 
         try:
             response = requests.get(api_url)
@@ -412,52 +464,310 @@ def get_polyline(start_lat, start_lng):
             if directions_data["status"] == "OK":
                 polyline = directions_data["routes"][0]["overview_polyline"]["points"]
 
-                # Update resort with the polyline
-                update_query = """
-                    UPDATE filtered_resorts
-                    SET polyline = %s
-                    WHERE resort_name = %s;
-                """
-                cursor.execute(update_query, (polyline, resort_name))
-                conn.commit()
-                print(f"Updated polyline for: {resort_name}")
             else:
-                print(f"Error fetching directions for {resort_name}: {directions_data['status']}")
+                # Fallback: use city names instead of lat/lng
+                print(f"Primary route failed for {resort_name}. Trying fallback with city names...")
+                fallback_origin = "Boulder, CO"
+                fallback_destination = f"{resort_name}, {state}"
+
+                fallback_url = (
+                    f"https://maps.googleapis.com/maps/api/directions/json"
+                    f"?origin={fallback_origin}&destination={fallback_destination}&mode=driving"
+                    f"&departure_time=now&key={GMAPS_API_KEY}"
+                )
+                fallback_response = requests.get(fallback_url)
+                fallback_response.raise_for_status()
+                fallback_data = fallback_response.json()
+
+                if fallback_data["status"] == "OK":
+                    polyline = fallback_data["routes"][0]["overview_polyline"]["points"]
+                else:
+                    print(f"Fallback failed for {resort_name}: {fallback_data['status']}")
+                    continue  # Skip updating this resort
+
+            # Update the specified table with the polyline
+            update_query = f"""
+                UPDATE {table_name}
+                SET polyline = %s
+                WHERE resort_name = %s;
+            """
+            cursor.execute(update_query, (polyline, resort_name))
+            conn.commit()
+            print(f"Updated polyline for: {resort_name}")
+
         except Exception as e:
             print(f"Exception fetching polyline for {resort_name}: {e}")
 
     cursor.close()
     conn.close()
-    print("Polyline updates complete.")
+    print(f"Polyline updates complete for table: {table_name}.")
+
+
+def get_closest_stations_to_coordinates(latitude, longitude):
+    """
+    For the given lat/long, call the Synoptic API with a 20-mile radius and limit of 50.
+    Return a list of the closest 50 station STIDs.
+    """
+    print(f"Getting closest stations to (Lat: {latitude}, Lon: {longitude})")
+    radius_miles = 20
+    limit_count = 50
+    url = (
+        f"{SYNOPTIC_API_ROOT}stations/metadata?"
+        f"token={SYNOPTIC_API_TOKEN}&radius={latitude},{longitude},{radius_miles}&limit={limit_count}"
+    )
+    headers = {'content-type': 'application/json'}
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+    except Exception as e:
+        print(f"API call error for coordinates {latitude}, {longitude}: {e}")
+        return []
+
+    if "STATION" in data and len(data["STATION"]) > 0:
+        stations = data["STATION"]
+        print(f"Found {len(stations)} stations for coordinates {latitude}, {longitude}")
+        return [station["STID"] for station in stations if "STID" in station]
+    else:
+        print(f"No station data available for coordinates {latitude}, {longitude}")
+        return []
+
+
+
+def get_snowfall_from_stations(start_closest_stations):
+    """
+    Go through the list of STIDs stored in start_closest_stations and make an API call for each
+    to try to get the 1-hr snowfall (precip_accum_one_hour). Return the first valid result found.
+    If none are found, return 0.0.
+    """
+    print("Checking 1-hour snowfall at starting location...")
+
+    for station in start_closest_stations:
+        station_id = station['stid']
+        print(f"  Trying station {station_id}...")
+
+        url = (
+            f"{SYNOPTIC_API_ROOT}stations/timeseries?stid={station_id}&recent=1000"
+            f"&vars=precip_accum_one_hour&token={SYNOPTIC_API_TOKEN}"
+        )
+        headers = {'content-type': 'application/json'}
+        #print(f"  API URL: {url}")
+
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+        except Exception as e:
+            print(f"    Error fetching/parsing data for station {station_id}: {e}")
+            continue
+
+        station_data = data.get('STATION', [])
+        if not station_data:
+            print(f"    No station data returned for station {station_id}")
+            continue
+
+        observations = station_data[0].get('OBSERVATIONS', {})
+
+        precip_values = observations.get('precip_accum_one_hour_set_1', [])
+
+        if precip_values:
+            valid_precip_values = [v for v in precip_values if v is not None]
+            if valid_precip_values:
+                precip = valid_precip_values[-1]
+                print(f"    Found valid 1-hr snowfall: {precip} mm at station {station_id}")
+                return precip
+            else:
+                print(f"    No valid 1-hr precipitation values at station {station_id}")
+        else:
+            print(f"    No precipitation data at all for station {station_id}")
+
+    print("  No valid 1-hr snowfall found at any nearby station. Defaulting to 0.0.")
+    return 0.0
+
+
+def get_all_1_hr_stations():
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = 'SELECT * FROM station_locations_snowfall_1_hr;'
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    # Get column names
+    colnames = [desc[0] for desc in cursor.description]
+
+    result = [dict(zip(colnames, row)) for row in rows]
+
+    cursor.close()
+    conn.close()
+
+    return result
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """Calculate the great-circle distance between two lat/lon points using the Haversine formula."""
+    R = 6371  # Earth radius in kilometers
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+
+    a = math.sin(delta_phi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(delta_lambda/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c  # Distance in kilometers
+
+
+def get_closest_stations_by_location(station_list, start_lat, start_long, max_results=None):
+    """
+    Returns the list of STIDs from the station_list sorted by distance to the starting location.
+    
+    Args:
+        station_list: list of dicts, each with 'STID', 'STID_lat', 'STID_long'
+        start_lat: float, starting latitude
+        start_long: float, starting longitude
+        max_results: optional int, limit number of closest stations returned
+
+    Returns:
+        List of station dicts sorted by distance (each dict will have 'STID', 'distance_km', etc.)
+    """
+    stations_with_distance = []
+    
+    for station in station_list:
+        try:
+            distance = haversine_distance(
+                start_lat, start_long,
+                float(station['stid_lat']),
+                float(station['stid_long'])
+            )
+            station_with_distance = {
+                **station,
+                'distance_km': distance
+            }
+            stations_with_distance.append(station_with_distance)
+        except Exception as e:
+            print(f"Error calculating distance for station {station.get('STID')}: {e}")
+            continue
+
+    # Sort by distance
+    sorted_stations = sorted(stations_with_distance, key=lambda x: x['distance_km'])
+
+    if max_results:
+        return sorted_stations[:max_results]
+    return sorted_stations
+
+
+# def get_travel_times(start_lat, start_long, resort_names):
+#     """
+#     Fetchs both time taken to reach the ski resort as well as distance to the ski resort
+#     """
+#     print("Fetching travel times to all colorado_resorts...")
+#     current_times=[]
+#     miles=[]
+#     conn = get_db_connection()
+#     cursor = conn.cursor()
+#     # Create a tuple of resort names for the SQL IN clause
+#     placeholders = ', '.join(["%s"] * len(resort_names))
+#     query = f"SELECT resort_name, lat, lon FROM colorado_resorts WHERE resort_name IN ({placeholders}) ORDER BY resort_name;"
+    
+#     cursor.execute(query, resort_names)
+#     rows = cursor.fetchall()
+
+#     for row in rows:
+#         travel_details=calculate_route(f"{start_lat},{start_long}", f"{row[1]},{row[2]}")["routes"][0]
+#         current_times.append(travel_details["summary"]["travelTimeInSeconds"])
+#         miles.append(travel_details["summary"]["lengthInMeters"]*0.00062137)
+
+#     cursor.close()
+#     conn.close()
+#     print(f"Retrieved travel information.")
+#     return current_times, miles
 
 def get_travel_times(start_lat, start_long, resort_names):
     """
-    Fetchs both time taken to reach the ski resort as well as distance to the ski resort
+    Fetch both time taken to reach the ski resort as well as distance to the ski resort,
+    preserving the order of resort_names. Also update the filtered_resorts table with distances.
     """
     print("Fetching travel times to all colorado_resorts...")
-    current_times=[]
-    miles=[]
+    travel_info = {}  # temp dict to store results by resort name
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    # Create a tuple of resort names for the SQL IN clause
+
     placeholders = ', '.join(["%s"] * len(resort_names))
-    query = f"SELECT resort_name, lat, lon FROM colorado_resorts WHERE resort_name IN ({placeholders}) ORDER BY resort_name;"
+    query = f"SELECT resort_name, lat, lon FROM colorado_resorts WHERE resort_name IN ({placeholders});"
     
     cursor.execute(query, resort_names)
     rows = cursor.fetchall()
 
     for row in rows:
-        travel_details=calculate_route(f"{start_lat},{start_long}", f"{row[1]},{row[2]}")["routes"][0]
-        current_times.append(travel_details["summary"]["travelTimeInSeconds"])
-        miles.append(travel_details["summary"]["lengthInMeters"]*0.00062137)
+        resort_name, lat, lon = row
+        travel_details = calculate_route(f"{start_lat},{start_long}", f"{lat},{lon}")["routes"][0]
+        travel_time = travel_details["summary"]["travelTimeInSeconds"]
+        distance_miles = travel_details["summary"]["lengthInMeters"] * 0.00062137
+
+        travel_info[resort_name] = {
+            "time": travel_time,
+            "miles": distance_miles
+        }
+
+        # Update the distance in the filtered_resorts table
+        update_query = """
+            UPDATE filtered_resorts
+            SET distance = %s
+            WHERE resort_name = %s;
+        """
+        cursor.execute(update_query, (distance_miles, resort_name))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(f"Retrieved travel information and updated filtered_resorts.")
+
+    # Reconstruct ordered lists
+    current_times = [travel_info[name]["time"] for name in resort_names]
+    miles = [travel_info[name]["miles"] for name in resort_names]
+
+    return current_times, miles
+
+
+def get_filtered_resorts_from_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    query = "SELECT * FROM filtered_resorts;"
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    colnames = [desc[0] for desc in cursor.description]
+
+    result = [dict(zip(colnames, row)) for row in rows]
 
     cursor.close()
     conn.close()
-    print(f"Retrieved travel information.")
-    return current_times, miles
+    return result
+
+
+def maybe_update_snowfall_data():
+    global last_snowfall_update
+
+    now = datetime.utcnow()
+    if last_snowfall_update is None or (now - last_snowfall_update > UPDATE_INTERVAL):
+        print("Updating snowfall data...")
+        try:
+            subprocess.run(["python3", "recent_snowfall_backend.py"], check=True)
+            last_snowfall_update = now
+            print("Snowfall data updated.")
+        except subprocess.CalledProcessError as e:
+            print(f"Error updating snowfall data: {e}")
+    else:
+        print("Snowfall data is up-to-date.")
+
 
 if __name__ == "__main__":
     # start flask app
     app.run(host="0.0.0.0", port=8000)
     # api_get_all_resorts()
+    # get_closest_stations_to_coordinates(40.01791680728027, -105.27065695880714)
     
