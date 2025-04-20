@@ -25,6 +25,7 @@ const UserInput: React.FC = () => {
   const [peopleError, setPeopleError] = useState('');
   const [budgetError, setBudgetError] = useState('');
   const [freshPowderError, setfreshPowderError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
@@ -66,18 +67,9 @@ const UserInput: React.FC = () => {
 
     if (hasError) return;
 
+    setIsLoading(true);
+
     setError(null);
-    console.log({
-      userName,
-      distance,
-      people,
-      budget,
-      drivingExperience,
-      freshPowder,
-      passType,
-      costImportance,
-      timeImportance,
-    });
 
     if (!navigator.geolocation) {
       console.error('Geolocation is not supported by this browser.');
@@ -93,7 +85,7 @@ const UserInput: React.FC = () => {
       (error) => {
         console.warn('Error getting location:', error);
 
-        // Default location (Example: Denver, CO)
+        // Default location (Example: Boulder, CO)
         const defaultLatitude = 40.0189728;
         const defaultLongitude = -105.2747406;
         console.log('Using default location (Boulder, CO):', {
@@ -139,6 +131,7 @@ const UserInput: React.FC = () => {
     } catch (error) {
       console.error('Error:', error);
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -169,6 +162,17 @@ const UserInput: React.FC = () => {
 
   return (
     <div className="flex flex-grow justify-center flex-row w-full h-full bg-lightblue  py-5 mt-[-400px] ">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-white bg-opacity-70 z-[9999] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-14 w-14 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-lg font-semibold text-blue-600">
+              Finding your mountain...
+            </p>
+          </div>
+        </div>
+      )}
       <form
         onSubmit={handleSubmit}
         className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg max-w-[400px] max-h-[500px] overflow-y-auto"
