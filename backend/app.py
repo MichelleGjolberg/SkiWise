@@ -61,7 +61,7 @@ all_resorts = []
 app = Flask(__name__)
 
 # Enable CORS for all routes or specific origins
-CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}})
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 
 def get_db_connection():
