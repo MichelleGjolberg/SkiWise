@@ -338,7 +338,7 @@ const UserInput: React.FC = () => {
           type="submit"
           className="bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
         >
-          Find your mountain
+          Search for resort
         </button>
       </form>
       {isDefault ? (
