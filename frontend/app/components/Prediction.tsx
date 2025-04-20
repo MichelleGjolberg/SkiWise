@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResortCard from './ResortCard';
 import ResortMap from './ResortMap';
 
@@ -85,11 +85,16 @@ const Prediction: React.FC<PredictionProps> = ({
       ? predictionData
       : getPredictedMountains();
 
-  const [selectedMountain, setSelectedMountain] = useState(mountains[0]);
+  const [selectedMountain, setSelectedMountain] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (mountains && mountains.length > 0) {
+      setSelectedMountain(mountains[0]);
+    }
+  }, [mountains, startpoint]);
+
   const start = startpoint ? startpoint : [40.0189728, -105.2747406];
-
-  console.log(selectedMountain);
-
+  if (!selectedMountain) return <p>Loading resort map...</p>;
   return (
     <div className="flex flex-row">
       <ResortMap
