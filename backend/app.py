@@ -409,16 +409,20 @@ def build_resort_cards(table_name):
     for idx, row in enumerate(rows):
         resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline, distance = row
 
+        if resort_name == "Sunlight, CO":
+            continue  # skip Sunlight
+
         card = {
             "place": resort_name,
             "distance": int(distance) if distance is not None else 0, # updated
+            "icon": logo_path,
             "iconAlt": logo_alt,
             "endPoint": {
                 "lat": float(lat) if lat else None,
                 "lng": float(lon) if lon else None
             },
             "encodedPolyline": polyline,
-            "snow": float(precip_accum_24_hour) if precip_accum_24_hour else 0.0
+            "snow": float(precip_accum_24_hour)/25.4 if precip_accum_24_hour else 0.0
         }
         resort_cards.append(card)
 
@@ -453,7 +457,7 @@ def get_polyline(start_lat, start_lng, table_name):
             f"?origin={origin}&destination={destination}&mode=driving"
             f"&departure_time=now&key={GMAPS_API_KEY}"
         )
-        # print(api_url)
+        print(api_url)
 
         try:
             response = requests.get(api_url)
