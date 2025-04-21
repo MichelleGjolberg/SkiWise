@@ -43,9 +43,9 @@ const Default: React.FC<DefaultProps> = ({ defaultData }) => {
 
   if (!defaultData || defaultData.length === 0) {
     return (
-      <div className="flex flex-row">
+      <div className="flex flex-col items-center md:flex-row">
         <ResortMapDefault startPoint={startpoint} />
-        <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l border-gray-300">
+        <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l">
           Loading resorts...
         </div>
       </div>
@@ -53,23 +53,26 @@ const Default: React.FC<DefaultProps> = ({ defaultData }) => {
   }
 
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-col items-center md:flex-row">
       <ResortMapDefault startPoint={selectedMountain.endPoint} />
-      <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l border-gray-300">
-        {defaultData.map((mountain, index) => (
-          <div
-            key={index}
-            onClick={() => setSelectedMountain(mountain)}
-            className="cursor-pointer"
-          >
-            <ResortCardDefault
-              place={mountain.place}
-              icon={mountain.icon}
-              iconAlt={mountain.iconAlt}
-              snow={mountain.snow}
-            />
-          </div>
-        ))}
+      <div className="flex flex-col max-h-[500px] w-80 p-2 ">
+        <p className="text-white text-xl font-semibold py-2">All resorts:</p>
+        <div className=" max-h-[500px] overflow-y-auto">
+          {defaultData.map((mountain, index) => (
+            <div
+              key={index}
+              onClick={() => setSelectedMountain(mountain)}
+              className="cursor-pointer"
+            >
+              <ResortCardDefault
+                place={mountain.place}
+                icon={mountain.icon}
+                iconAlt={mountain.iconAlt}
+                snow={mountain.snow}
+              />
+            </div>
+          ))}
+        </div>{' '}
       </div>
     </div>
   );

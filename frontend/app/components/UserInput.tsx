@@ -155,8 +155,7 @@ const UserInput: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-grow justify-center flex-row w-full h-full bg-lightblue  py-5 mt-[-400px] ">
-      {/* Loading Overlay */}
+    <div className="flex flex-grow justify-center flex-col md:flex-row w-full h-full bg-lightblue  py-5 mt-[-400px] ">
       {isLoading && (
         <div className="fixed inset-0 bg-white bg-opacity-70 z-[9999] flex items-center justify-center">
           <div className="text-center">
@@ -169,7 +168,7 @@ const UserInput: React.FC = () => {
       )}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg max-w-[400px] max-h-[500px] overflow-y-auto"
+        className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg min-w-[250px] max-w-[400px] max-h-[500px] overflow-y-auto"
       >
         {error && <p className="text-red-500 font-semibold">{error}</p>}
         <label className="flex flex-col">
