@@ -39,7 +39,7 @@ def calculate_base_fee(miles):
     """Calculate base fee based on round-trip miles (scales between $5-$30)."""
     round_trip_miles = 2*miles
     if round_trip_miles >= 200:
-        return 30
+        return 10
     else:
         return 5 + (round_trip_miles / 100)
 
@@ -66,8 +66,14 @@ def calculate_cost_per_person(num_people, miles):
     
     for i in range(num_resorts):
         base_fee = calculate_base_fee(miles[i])
-        one_way_cost = 0.15 * miles[i] * FUEL_COST * (1 + MAINTENANCE_FACTOR)
-        per_person_cost = base_fee + 2* (one_way_cost / num_people)
+        # Estimate gas cost only, with maintenance overhead
+        gallons_used = miles[i]*2 / 20
+        gas_cost = gallons_used * FUEL_COST * (1 + MAINTENANCE_FACTOR)
+
+        # Total trip cost + base, split among group
+        total_cost = gas_cost + base_fee
+        per_person_cost = total_cost / num_people
+        
         cost_per_person.append(round_up_to_nearest_5(per_person_cost))
     
     return cost_per_person
