@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ResortCard from './ResortCard';
 import ResortMap from './ResortMap';
 
@@ -85,34 +85,42 @@ const Prediction: React.FC<PredictionProps> = ({
       ? predictionData
       : getPredictedMountains();
 
-  const [selectedMountain, setSelectedMountain] = useState(mountains[0]);
+  const [selectedMountain, setSelectedMountain] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (mountains && mountains.length > 0) {
+      setSelectedMountain(mountains[0]);
+    }
+  }, [mountains, startpoint]);
+
   const start = startpoint ? startpoint : [40.0189728, -105.2747406];
-
-  console.log(selectedMountain);
-
+  if (!selectedMountain) return <p>Loading resort map...</p>;
   return (
-    <div className="flex flex-row">
+    <div className="flex flex-col items-center md:flex-row">
       <ResortMap
         startPoint={start}
         endPoint={selectedMountain.endPoint}
         encodedPolyline={selectedMountain.encodedPolyline}
       />
-      <div className="flex flex-col overflow-y-auto max-h-[500px] w-80 p-2 border-l border-gray-300">
-        {mountains.map((mountain, index) => (
-          <div
-            key={index}
-            onClick={() => setSelectedMountain(mountain)}
-            className="cursor-pointer"
-          >
-            <ResortCard
-              place={mountain.place}
-              distance={mountain.distance}
-              icon={mountain.icon}
-              iconAlt={mountain.iconAlt}
-              snow={mountain.snow}
-            />
-          </div>
-        ))}
+      <div className="flex flex-col max-h-[500px] w-80 p-2 ">
+        <p className="text-white text-xl font-semibold py-2">Best Results:</p>
+        <div className=" max-h-[500px] overflow-y-auto">
+          {mountains.map((mountain, index) => (
+            <div
+              key={index}
+              onClick={() => setSelectedMountain(mountain)}
+              className="cursor-pointer"
+            >
+              <ResortCard
+                place={mountain.place}
+                distance={mountain.distance}
+                icon={mountain.icon}
+                iconAlt={mountain.iconAlt}
+                snow={mountain.snow}
+              />
+            </div>
+          ))}
+        </div>{' '}
       </div>
     </div>
   );
