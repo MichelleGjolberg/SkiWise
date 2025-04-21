@@ -15,10 +15,10 @@
      spec:
        containers:
        - name: backend
-         image: mukund0004/skiwise-backend:v1
+         image: mukund0004/skiwise-backend:v2.2
          envFrom:
            - secretRef:
-               name: backend-secret
+               name: backend-secret2
          ports:
          - containerPort: 8000
          resources:

@@ -9,5 +9,5 @@
      app: frontend
    ports:
    - protocol: TCP
-     port: 5173
+     port: 80
      targetPort: 3000

@@ -15,7 +15,7 @@
      spec:
        containers:
        - name: frontend
-         image: mukund0004/skiwisefrontend:v4.6.1
+         image: mukund0004/skiwisefrontend:v4.9
          envFrom:
             - configMapRef:
                 name: frontend-config
