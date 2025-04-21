@@ -108,7 +108,7 @@ const UserInput: React.FC = () => {
     };
 
     try {
-      const response = await fetch('http://localhost:8000/get_mountain', {
+      const response = await fetch('http://skiwise.duckdns.org:8000/get_mountain', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ const UserInput: React.FC = () => {
 
   const get_all_resorts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/get_all_resorts', {
+      const response = await fetch('http://skiwise.duckdns.org:8000/get_all_resorts', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
