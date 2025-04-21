@@ -16,10 +16,10 @@ w1 = 5
 # Hardcoded Parameters
 # ==========================
 
-DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
+DRIVING_EXPERIENCE_FACTOR = 0.05  # Intermediate level
 FUEL_COST = 3                 # Dollars per gallon
 MAINTENANCE_FACTOR = 0.10     # 10%
-SNOWFALL_TIME_FACTOR = 0.05   # Random weight added per inch of snowfall
+SNOWFALL_TIME_FACTOR = 0.01   # Random weight added per inch of snowfall
 NORM_MIN = 1 # Normalization range
 NORM_MAX = 5
 
@@ -43,9 +43,9 @@ def calculate_base_fee(miles):
     else:
         return 5 + (round_trip_miles / 100)
 
-def round_up_to_nearest_10(x):
-    """Round up a number to the nearest 10."""
-    return math.ceil(x / 10.0) * 10
+def round_up_to_nearest_5(x):
+    """Round up a number to the nearest 5."""
+    return math.ceil(x / 5.0) * 5
 
 def normalize(values):
     """Normalize a list of values to the range [NORM_MIN, NORM_MAX]."""
@@ -66,9 +66,9 @@ def calculate_cost_per_person(num_people, miles):
     
     for i in range(num_resorts):
         base_fee = calculate_base_fee(miles[i])
-        one_way_cost = miles[i] * FUEL_COST * (1 + MAINTENANCE_FACTOR)
+        one_way_cost = 0.15 * miles[i] * FUEL_COST * (1 + MAINTENANCE_FACTOR)
         per_person_cost = base_fee + 2* (one_way_cost / num_people)
-        cost_per_person.append(round_up_to_nearest_10(per_person_cost))
+        cost_per_person.append(round_up_to_nearest_5(per_person_cost))
     
     return cost_per_person
 
@@ -170,7 +170,7 @@ def plot_resort_scores(cost_per_person, travel_time, scores, resort_names, top_r
     plt.title('Ski Resorts: Cost vs. Time (Top Resorts Highlighted)', fontsize=14)
     
     # Add legend for top resorts
-    plt.legend(loc='upper right')
+    plt.legend(loc='lower right')
 
     plt.grid(True)
     plt.show()
