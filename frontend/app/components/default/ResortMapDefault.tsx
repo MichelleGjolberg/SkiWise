@@ -38,7 +38,7 @@ const ResortMap: React.FC<ResortMapProps> = ({ startPoint }) => {
   }, [startPoint]);
 
   return (
-    <div className="relative w-[500px] h-[500px]">
+    <div className="relative w-[300px] h-[300px] md:w-[500px] md:h-[500px] py-4">
       <div className="absolute inset-0 w-full h-full" ref={mapContainerRef} />
     </div>
   );

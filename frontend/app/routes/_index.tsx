@@ -29,23 +29,24 @@ export default function Index() {
   return (
     <div className="flex flex-col min-h-screen">
       <div
-        className="relative h-screen w-full bg-fixed bg-cover bg-top overflow-hidden shadow-lg z-0"
+        className="relative h-screen w-full bg-fixed bg-cover bg-center overflow-hidden shadow-lg z-0"
         style={{ backgroundImage: "url('/mountain_range.avif')" }}
       >
-        <div className="flex flex-col items-center justify-center h-1/3 ">
+        <div className="flex flex-col items-center justify-center h-1/3 px-4 sm:px-0">
           <NavBar />
           <button
-            className={`w-1/3 h-[100px] rounded-lg bg-white transition-transform duration-300 transform ${
+            className={`w-full max-w-sm h-[80px] sm:h-[100px] mt-6 rounded-lg bg-white transition-transform duration-300 transform ${
               isButtonDisabled ? 'cursor-not-allowed' : 'hover:scale-105'
             }`}
             onClick={handleClick}
-            disabled={isButtonDisabled} // Disable after first click
+            disabled={isButtonDisabled}
           >
-            <h1 className="text-2xl font-bold text-gray-600 flex justify-center items-center text-center h-100">
-              Welcome to Skiwise - Find your mountain
+            <h1 className="text-lg sm:text-2xl font-bold text-gray-600 text-center px-2 leading-tight">
+              Welcome to SkiWise –<br className="block sm:hidden" />
+              Find your mountain
             </h1>
             {!showContent && (
-              <p className="text-md  text-gray-400 flex justify-center items-center text-center ">
+              <p className="text-sm text-gray-400 text-center mt-1">
                 Click here
               </p>
             )}
