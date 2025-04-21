@@ -92,11 +92,11 @@ const UserInput: React.FC = () => {
   const sendFormData = async (latitude: number, longitude: number) => {
     const formData = {
       userName,
-      distance,
-      people,
-      budget,
+      distance: Number(distance),
+      people: Number(people),
+      budget: Number(budget),
       drivingExperience,
-      freshPowder,
+      freshPowder: Number(freshPowder),
       passType,
       costImportance,
       timeImportance,
@@ -135,9 +135,8 @@ const UserInput: React.FC = () => {
       setError('Something went wrong. Showing default resorts.');
       setIsDefault(true);
       await get_all_resorts(); // fallback
-    } finally {
-      setIsLoading(false); //
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
