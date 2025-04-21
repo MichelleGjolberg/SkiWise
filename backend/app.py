@@ -113,17 +113,29 @@ def get_mountain():
 
     #maybe_update_snowfall_data() # check if snowfall data has been updated within the past hour
 
-    # Clear the top_3_resorts and filtered_resorts tables
+    # # Clear the top_3_resorts and filtered_resorts tables
+    # conn = get_db_connection()
+    # cursor = conn.cursor()
+
+    # # Clear top_3_resorts table
+    # cursor.execute("DELETE FROM top_3_resorts;")
+    # print("Cleared existing resorts in top_3_resorts.")
+
+    # # Clear filtered_resorts table
+    # cursor.execute("DELETE FROM filtered_resorts;")
+    # print("Cleared existing resorts in filtered_resorts.")
+
+    # cursor.close()
+    # conn.close()
+
+    # clear the top_3 table
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Clear top_3_resorts table
-    cursor.execute("DELETE FROM top_3_resorts;")
-    print("Cleared existing resorts in top_3_resorts.")
-
-    # Clear filtered_resorts table
-    cursor.execute("DELETE FROM filtered_resorts;")
-    print("Cleared existing resorts in filtered_resorts.")
+    # Clear the given table
+    clear_table_query = f"DELETE FROM top_3_resorts;"
+    cursor.execute(clear_table_query)
+    print(f"Cleared existing resorts in top_3_resorts.")
 
     cursor.close()
     conn.close()
