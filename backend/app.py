@@ -40,17 +40,16 @@ snowfall_importance = 5 # TODO add frontend slider to snowfall_importance and ca
 # TODO get from results of traffic API call
 miles =          []
 accidents =      []
-current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 1111, 2222, 3333, 4444]  # In seconds
+current_time =   []  # In seconds
 
 
-# snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 3, 4] # TODO call weather API to get recent snowfall (1 hr?) at start location
-snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 11, 12, 13, 14] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
+snowfall_end =   [] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
 
 # Hardcoded Parameters
-DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
-FUEL_COST = 3                 # Dollars per mile
+DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level default
+FUEL_COST = 3                 # Dollars per gallon
 MAINTENANCE_FACTOR = 0.10     # 10%
-SNOWFALL_TIME_FACTOR = 0.5   # Random weight added per inch of snowfall
+SNOWFALL_TIME_FACTOR = 0.05   # Random weight added per inch of snowfall
 NORM_MIN = 1 # Normalization range
 NORM_MAX = 5
 
@@ -142,6 +141,10 @@ def get_mountain():
     latitude=location.get("latitude")
     longitude=location.get("longitude")
     
+    # Weight 2 and Weight 3 should be negetive.... 
+    cost_importance = -cost_importance
+    time_importance = -time_importance
+    
     ### Debug print to ensure all values are captured
     print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
           f"Driving Experience: {driving_experience}, Fresh Powder: {fresh_powder_inches}, Pass Type: {pass_type}, "
@@ -179,8 +182,21 @@ def get_mountain():
     # checking that stations are ordered correctly
     # for s in closest_1hr_stations_to_start:
     #     print(f"{s['stid']} - {s['distance_km']:.2f} km")
+    
+    def get_driving_experience_factor(data):
+        driving_experience = data.get("drivingExperience")
 
+        # Set driving experience values
+        if driving_experience == "beginner":
+            DRIVING_EXPERIENCE_FACTOR = 0.1
+        elif driving_experience == "intermediate":
+            DRIVING_EXPERIENCE_FACTOR = 0.05
+        else:
+            DRIVING_EXPERIENCE_FACTOR = 0.02
 
+        return DRIVING_EXPERIENCE_FACTOR
+    
+    DRIVING_EXPERIENCE_FACTOR = get_driving_experience_factor(data)
 
     ### update global variables with data from frontend user input
     resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
@@ -200,7 +216,7 @@ def get_mountain():
     print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}, snowfall_end: {snowfall_end}, snowfall_start: {snowfall_start}, miles: {miles}, accidents: {accidents}")
     
     ### pass list of filtered resorts with travel times to optimization function
-    top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time) 
+    top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time, DRIVING_EXPERIENCE_FACTOR) 
     #top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance) 
 
     # Print the top resorts in the terminal
