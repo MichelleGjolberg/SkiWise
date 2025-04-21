@@ -141,6 +141,10 @@ def get_mountain():
     latitude=location.get("latitude")
     longitude=location.get("longitude")
     
+    # Weight 2 and Weight 3 should be negetive.... 
+    cost_importance = -cost_importance
+    time_importance = -time_importance
+    
     ### Debug print to ensure all values are captured
     print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
           f"Driving Experience: {driving_experience}, Fresh Powder: {fresh_powder_inches}, Pass Type: {pass_type}, "
