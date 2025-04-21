@@ -250,8 +250,8 @@ def get_mountain():
     # call db to select only predicted resorts and wanted columns (for frontend cards) from top_3_resorts, add cols
     resort_cards_list = build_resort_cards("top_3_resorts")
 
-    if not resort_cards_list:
-        resort_cards_list = all_resorts_cards = build_resort_cards("colorado_resorts") # get all cards for all resorts in colorado_resorts db
+    # if not resort_cards_list:
+    #     resort_cards_list = build_resort_cards("colorado_resorts") # get all cards for all resorts in colorado_resorts db
 
     return jsonify({"resorts": resort_cards_list}), 200 
 
