@@ -25,7 +25,17 @@ const UserInput: React.FC = () => {
   const [peopleError, setPeopleError] = useState('');
   const [budgetError, setBudgetError] = useState('');
   const [freshPowderError, setfreshPowderError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
+  const cityOptions = [
+    { name: 'Boulder, CO', coords: [40.01499, -105.27055] },
+    { name: 'Denver, CO', coords: [39.7392, -104.9903] },
+    { name: 'Fort Collins, CO', coords: [40.5853, -105.0844] },
+    { name: 'Colorado springs, CO', coords: [38.8339, -104.8214] },
+    { name: 'Durango, CO', coords: [37.2753, -107.8801] },
+  ];
+
+  const [selectedCity, setSelectedCity] = useState(cityOptions[0]);
   // This function allows for "value=none" for "Both Passes" and "Willing to pay"
   const handleNoneChange = (value: string) => {
     setPassType('none');
@@ -66,44 +76,21 @@ const UserInput: React.FC = () => {
 
     if (hasError) return;
 
+    setIsLoading(true);
+
+    const [latitude, longitude] = selectedCity?.coords || [
+      40.0189728, -105.2747406,
+    ];
+    setStartpoint([latitude, longitude]);
+    await sendFormData(latitude, longitude);
+
     setError(null);
-    console.log({
-      userName,
-      distance,
-      people,
-      budget,
-      drivingExperience,
-      freshPowder,
-      passType,
-      costImportance,
-      timeImportance,
-    });
 
     if (!navigator.geolocation) {
       console.error('Geolocation is not supported by this browser.');
       return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setStartpoint([latitude, longitude]);
-        sendFormData(latitude, longitude);
-      },
-      (error) => {
-        console.warn('Error getting location:', error);
-
-        // Default location (Example: Denver, CO)
-        const defaultLatitude = 40.0189728;
-        const defaultLongitude = -105.2747406;
-        console.log('Using default location (Boulder, CO):', {
-          latitude: defaultLatitude,
-          longitude: defaultLongitude,
-        });
-
-        sendFormData(defaultLatitude, defaultLongitude);
-      }
-    );
+    sendFormData(selectedCity.coords[0], selectedCity.coords[1]);
   };
 
   const sendFormData = async (latitude: number, longitude: number) => {
@@ -139,6 +126,7 @@ const UserInput: React.FC = () => {
     } catch (error) {
       console.error('Error:', error);
     }
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -161,17 +149,26 @@ const UserInput: React.FC = () => {
       const data = await response.json();
       setDefaultData(data.resorts);
       setIsDefault(true);
-      console.log('Response from /get_all_resorts:', data.resorts);
     } catch (error) {
       console.error('Error fetching all resorts:', error);
     }
   };
 
   return (
-    <div className="flex flex-grow justify-center flex-row w-full h-full bg-lightblue  py-5 mt-[-400px] ">
+    <div className="flex flex-grow justify-center flex-col md:flex-row w-full h-full bg-lightblue  py-5 mt-[-400px] ">
+      {isLoading && (
+        <div className="fixed inset-0 bg-white bg-opacity-70 z-[9999] flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-14 w-14 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-lg font-semibold text-blue-600">
+              Finding your mountain...
+            </p>
+          </div>
+        </div>
+      )}
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg max-w-[400px] max-h-[500px] overflow-y-auto"
+        className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg min-w-[250px] max-w-[400px] max-h-[500px] overflow-y-auto"
       >
         {error && <p className="text-red-500 font-semibold">{error}</p>}
         <label className="flex flex-col">
@@ -184,6 +181,23 @@ const UserInput: React.FC = () => {
             className="border rounded p-2"
             required
           />
+        </label>
+        <label className="flex flex-col">
+          <span className="font-semibold">Starting Location:</span>
+          <select
+            value={selectedCity.name}
+            onChange={(e) => {
+              const city = cityOptions.find((c) => c.name === e.target.value);
+              if (city) setSelectedCity(city);
+            }}
+            className="border rounded p-2"
+          >
+            {cityOptions.map((city) => (
+              <option key={city.name} value={city.name}>
+                {city.name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label className="flex flex-col">
@@ -334,7 +348,7 @@ const UserInput: React.FC = () => {
           type="submit"
           className="bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
         >
-          Find your mountain
+          Search for resort
         </button>
       </form>
       {isDefault ? (

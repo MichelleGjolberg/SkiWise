@@ -29,7 +29,6 @@ UPDATE_INTERVAL = timedelta(hours=1)  # How often to refresh snowfall data
 # ==========================
 
 # Hardcoded Data for 10 Resorts -----------------> Get from backend
-# default values: TODO update to 0/null ?
 num_people = 4
 max_budget = 100
 max_time = 5
@@ -37,20 +36,19 @@ min_snowfall = 1
 cost_importance, time_importance = -5, -5 
 snowfall_importance = 5 # TODO add frontend slider to snowfall_importance and capture variable in backend
 
-# TODO get from results of traffic API call
+# get from results of traffic API call
 miles =          []
 accidents =      []
-current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480, 1111, 2222, 3333, 4444]  # In seconds
+current_time =   []  # In seconds
 
 
-# snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 2, 6, 4, 3, 2, 5, 1, 2, 1, 2, 3, 4] # TODO call weather API to get recent snowfall (1 hr?) at start location
-snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 12, 7, 14, 8, 6, 18, 9, 11, 4, 10, 11, 12, 13, 14] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
+snowfall_end =   [] # TODO call weather API to get recent snowfall (1 hr?) at end locations = resorts (already in db)
 
 # Hardcoded Parameters
-DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
-FUEL_COST = 3                 # Dollars per mile
+DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level default
+FUEL_COST = 3                 # Dollars per gallon
 MAINTENANCE_FACTOR = 0.10     # 10%
-SNOWFALL_TIME_FACTOR = 0.5   # Random weight added per inch of snowfall
+SNOWFALL_TIME_FACTOR = 0.05   # Random weight added per inch of snowfall
 NORM_MIN = 1 # Normalization range
 NORM_MAX = 5
 
@@ -124,6 +122,13 @@ def get_mountain():
     clear_table_query = f"DELETE FROM top_3_resorts;"
     cursor.execute(clear_table_query)
     print(f"Cleared existing resorts in top_3_resorts.")
+
+
+    # Clear the given table
+    clear_table_query = f"DELETE FROM filtered_resorts;"
+    cursor.execute(clear_table_query)
+    print(f"Cleared existing resorts in filtered_resorts.")
+
     cursor.close()
     conn.close()
 
@@ -141,6 +146,10 @@ def get_mountain():
     location=data.get("location")
     latitude=location.get("latitude")
     longitude=location.get("longitude")
+    
+    # Weight 2 and Weight 3 should be negetive.... 
+    cost_importance = -cost_importance
+    time_importance = -time_importance
     
     ### Debug print to ensure all values are captured
     print(f"User: {user_name}, Distance: {distance}, People: {people}, Budget: {budget}, "
@@ -163,11 +172,9 @@ def get_mountain():
     print(f"filtered_resorts after pass filtering: {filtered_resorts}")
     store_resorts(filtered_resorts, "filtered_resorts")
 
-    ### TODO need to get 1 hr snowfall at start and end locations (end = at each resort)
+    ### get 1 hr snowfall at start and end locations (end = at each resort)
     snowfall_end = [resort.get("precip_accum_1_hour", 0.0) for resort in filtered_resorts]
 
-    # start_closest_stations = get_closest_stations_to_coordinates(latitude, longitude)
-    # print(f"start_closest_stations: {start_closest_stations}")
 
     stations_1_hr = get_all_1_hr_stations()
 
@@ -175,12 +182,21 @@ def get_mountain():
 
     snowfall_start = get_snowfall_from_stations(closest_1hr_stations_to_start)
     print(f"snowfall_start: {snowfall_start}")
+    
+    def get_driving_experience_factor(data):
+        driving_experience = data.get("drivingExperience")
 
-    # checking that stations are ordered correctly
-    # for s in closest_1hr_stations_to_start:
-    #     print(f"{s['stid']} - {s['distance_km']:.2f} km")
+        # Set driving experience values
+        if driving_experience == "beginner":
+            DRIVING_EXPERIENCE_FACTOR = 0.1
+        elif driving_experience == "intermediate":
+            DRIVING_EXPERIENCE_FACTOR = 0.05
+        else:
+            DRIVING_EXPERIENCE_FACTOR = 0.02
 
-
+        return DRIVING_EXPERIENCE_FACTOR
+    
+    DRIVING_EXPERIENCE_FACTOR = get_driving_experience_factor(data)
 
     ### update global variables with data from frontend user input
     resorts_to_optimize = [resort["resort_name"] for resort in filtered_resorts]
@@ -188,8 +204,6 @@ def get_mountain():
 
     ### pass filtered_resorts to cotrip api to get travel times (traffic backend)
     current_time, miles= get_travel_times(latitude, longitude, resorts_to_optimize)
-
-    # TODO is filtered_resorts (local) updated with distances here ??
 
     min_snowfall = fresh_powder_inches
     num_people = people
@@ -200,7 +214,7 @@ def get_mountain():
     print(f"min_snowfall: {min_snowfall},  num_people: {num_people},  max_budget: {max_budget},  max_time: {max_time},  snowfall_importance: {snowfall_importance},  cost_importance: {cost_importance},  time_importance: {time_importance}, snowfall_end: {snowfall_end}, snowfall_start: {snowfall_start}, miles: {miles}, accidents: {accidents}")
     
     ### pass list of filtered resorts with travel times to optimization function
-    top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time) 
+    top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance, miles, accidents, snowfall_start, snowfall_end, current_time, DRIVING_EXPERIENCE_FACTOR) 
     #top_3, cost, time, scores = optimize_ski_resorts(resorts_to_optimize, num_people, max_budget, max_time, min_snowfall, snowfall_importance, cost_importance, time_importance) 
 
     # Print the top resorts in the terminal
@@ -239,6 +253,8 @@ def get_mountain():
     # call db to select only predicted resorts and wanted columns (for frontend cards) from top_3_resorts, add cols
     resort_cards_list = build_resort_cards("top_3_resorts")
 
+    # if not resort_cards_list:
+    #     resort_cards_list = all_resorts_cards = build_resort_cards("colorado_resorts") # get all cards for all resorts in colorado_resorts db
 
     return jsonify({"resorts": resort_cards_list}), 200 
 
@@ -409,6 +425,9 @@ def build_resort_cards(table_name):
     for idx, row in enumerate(rows):
         resort_name, lat, lon, logo_path, logo_alt, precip_accum_24_hour, polyline, distance = row
 
+        if resort_name == "Sunlight, CO":
+            continue  # skip Sunlight
+
         card = {
             "place": resort_name,
             "distance": int(distance) if distance is not None else 0, # updated
@@ -419,7 +438,7 @@ def build_resort_cards(table_name):
                 "lng": float(lon) if lon else None
             },
             "encodedPolyline": polyline,
-            "snow": float(precip_accum_24_hour) if precip_accum_24_hour else 0.0
+            "snow": float(precip_accum_24_hour)/25.4 if precip_accum_24_hour else 0.0
         }
         resort_cards.append(card)
 
@@ -454,7 +473,7 @@ def get_polyline(start_lat, start_lng, table_name):
             f"?origin={origin}&destination={destination}&mode=driving"
             f"&departure_time=now&key={GMAPS_API_KEY}"
         )
-        # print(api_url)
+        print(api_url)
 
         try:
             response = requests.get(api_url)
