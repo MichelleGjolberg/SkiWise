@@ -7,11 +7,11 @@ import Default from './default/Default';
 
 const UserInput: React.FC = () => {
   const [userName, setUserName] = useState('');
-  const [distance, setDistance] = useState('');
-  const [people, setPeople] = useState('');
-  const [budget, setBudget] = useState('');
+  const [distance, setDistance] = useState<number | ''>('');
+  const [people, setPeople] = useState<number | ''>('');
+  const [budget, setBudget] = useState<number | ''>('');
   const [drivingExperience, setDrivingExperience] = useState('beginner');
-  const [freshPowder, setFreshPowder] = useState('');
+  const [freshPowder, setFreshPowder] = useState<number | ''>('');
   const [passType, setPassType] = useState('none');
   const [isPayOptionSelected, setIsPayOptionSelected] = useState(false);
   const [costImportance, setCostImportance] = useState(5);
@@ -215,7 +215,7 @@ const UserInput: React.FC = () => {
             type="number"
             placeholder="Enter driving time"
             value={distance}
-            onChange={(e) => setDistance(e.target.value)}
+            onChange={(e) => setDistance(e.target.valueAsNumber)}
             className="border rounded p-2"
             required
           />
@@ -231,7 +231,7 @@ const UserInput: React.FC = () => {
             type="number"
             placeholder="Enter number of people"
             value={people}
-            onChange={(e) => setPeople(e.target.value)}
+            onChange={(e) => setPeople(e.target.valueAsNumber)}
             className="border rounded p-2"
             required
           />
@@ -245,7 +245,7 @@ const UserInput: React.FC = () => {
             type="number"
             placeholder="Enter your budget"
             value={budget}
-            onChange={(e) => setBudget(e.target.value)}
+            onChange={(e) => setBudget(e.target.valueAsNumber)}
             className="border rounded p-2"
             required
           />
@@ -275,7 +275,7 @@ const UserInput: React.FC = () => {
             type="number"
             placeholder="Enter inches of fresh snow"
             value={freshPowder}
-            onChange={(e) => setFreshPowder(e.target.value)}
+            onChange={(e) => setFreshPowder(e.target.valueAsNumber)}
             className="border rounded p-2"
           />
           {freshPowderError && (
