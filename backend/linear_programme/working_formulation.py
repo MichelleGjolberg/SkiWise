@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 # User Inputs & from API ----------------------> Get from backend
 # ==========================
 
-num_people = 4
+num_people = 5
 max_budget = 100
 max_time = 5
 min_snowfall = 1
-w1, w2, w3 = 5, -5, -5
-DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
+w1, w2, w3 = 5, -8, -3 # Budget constrained student
+DRIVING_EXPERIENCE_FACTOR = 0.05  # Intermediate level
 
 # ==========================
 # Hardcoded Parameters
@@ -18,7 +18,7 @@ DRIVING_EXPERIENCE_FACTOR = 0.1  # Intermediate level
 
 FUEL_COST = 3                 # Dollars per gallon
 MAINTENANCE_FACTOR = 0.10     # 10%
-SNOWFALL_TIME_FACTOR = 0.5   # Random weight added per inch of snowfall
+SNOWFALL_TIME_FACTOR = 0.01   # Random weight added per inch of snowfall
 NORM_MIN = 1 # Normalization range
 NORM_MAX = 5
 
@@ -40,12 +40,23 @@ colorado_ski_resorts = [
     "Eldora Mountain"
 ]
 
-miles =          [30, 21, 40, 57, 46, 105, 72, 83, 85, 220]
-accidents =      [0,  0,  0,  0,  0,   1,  0,  2,  0,  1]
-snowfall_start = [1, 2, 2, 6, 4, 3, 2, 5, 1, 2]
-snowfall_end =   [12, 7, 14, 8, 6, 18, 9, 11, 4, 10]
-current_time =   [3600, 1800, 5400, 4320, 2880, 7200, 3960, 4680, 2520, 3480]  # In seconds
-# snowfall_dest = [15, 9, 20, 11, 10, 25, 13, 14, 8, 18]  # Fresh powder at destination - Get from API giving snowfall in last 1 hour (commented for now)
+# 
+miles =          [70, 170, 170, 120, 85, 170, 75, 200, 45, 21]
+accidents =      [0,   1,   0,   0,  0,   2,  0,  0,  0,  1]
+snowfall_start = [1,   2,   2,   2,  5,   3,  2,  5,  1,  2]
+snowfall_end =   [12,  7,  14,   8,  6,  10,  9, 11,  4, 10]
+current_time =   [
+    5400,   # Arapahoe Basin (~1.5 hours)
+    11700,  # Aspen Highlands (~3.25 hours)
+    11700,  # Aspen Mountain (same area)
+    9600,   # Beaver Creek (~2.7 hours)
+    7200,   # Breckenridge (~2 hours)
+    11700,  # Buttermilk (Aspen area)
+    6000,   # Copper Mountain (~1.7 hours)
+    12600,  # Crested Butte (~3.5 hours)
+    3600,   # Echo Mountain (~1 hour)
+    1800    # Eldora Mountain (~30 minutes)
+]
 
 # ==========================
 # Helper Functions
@@ -60,8 +71,8 @@ def calculate_base_fee(miles):
         return 5 + (round_trip_miles / 100)
 
 def round_up_to_nearest_10(x):
-    """Round up a number to the nearest 10."""
-    return math.ceil(x / 10.0) * 10
+    """Round up a number to the nearest 5."""
+    return math.ceil(x / 5.0) * 5
 
 def normalize(values):
     """Normalize a list of values to the range [NORM_MIN, NORM_MAX]."""
@@ -82,9 +93,13 @@ def calculate_cost_per_person(num_people):
     
     for i in range(len(miles)):
         base_fee = calculate_base_fee(miles[i])
-        one_way_cost = miles[i] * FUEL_COST * (1 + MAINTENANCE_FACTOR)
+        one_way_cost = 0.15 * miles[i] * FUEL_COST * (1 + MAINTENANCE_FACTOR)
         per_person_cost = base_fee + 2* (one_way_cost / num_people)
         cost_per_person.append(round_up_to_nearest_10(per_person_cost))
+        # cost_per_person.append(per_person_cost)
+        
+        # per_person_cost = base_fee + 2* (one_way_cost / num_people)
+
     
     return cost_per_person
 
@@ -177,10 +192,15 @@ def plot_resort_scores(cost_per_person, travel_time, scores, resort_names, top_r
     plt.title('Ski Resorts: Cost vs. Time (Top Resorts Highlighted)', fontsize=14)
     
     # Add legend for top resorts
-    plt.legend(loc='upper right')
+    plt.legend(loc='lower right')
 
     plt.grid(True)
-    plt.show()
+    plt.xlim(0, 90)
+    # plt.show()
+        # plt.grid(True)
+    plt.savefig("resort_plot.png")
+    print("Plot saved as 'resort_plot.png'")
+
 
 # ==========================
 # Output Results
