@@ -82,15 +82,11 @@ const UserInput: React.FC = () => {
       40.0189728, -105.2747406,
     ];
     setStartpoint([latitude, longitude]);
+
+    //Only one call needed
     await sendFormData(latitude, longitude);
 
     setError(null);
-
-    if (!navigator.geolocation) {
-      console.error('Geolocation is not supported by this browser.');
-      return;
-    }
-    sendFormData(selectedCity.coords[0], selectedCity.coords[1]);
   };
 
   const sendFormData = async (latitude: number, longitude: number) => {
@@ -104,7 +100,7 @@ const UserInput: React.FC = () => {
       passType,
       costImportance,
       timeImportance,
-      location: { latitude, longitude }, // Send either user or default location
+      location: { latitude, longitude },
     };
 
     try {
@@ -121,11 +117,26 @@ const UserInput: React.FC = () => {
       }
 
       const data = await response.json();
+
+      if (!data.resorts || data.resorts.length === 0) {
+        setError(
+          'Sorry, no resorts match your search. Showing all resorts instead.'
+        );
+        setIsDefault(true);
+        await get_all_resorts(); // fallback
+        return;
+      }
+
       setPredictionData(data.resorts);
       setIsDefault(false);
+      setError(null);
     } catch (error) {
       console.error('Error:', error);
+      setError('Something went wrong. Showing default resorts.');
+      setIsDefault(true);
+      await get_all_resorts(); // fallback
     }
+
     setIsLoading(false);
   };
 
@@ -170,7 +181,6 @@ const UserInput: React.FC = () => {
         onSubmit={handleSubmit}
         className="flex flex-col space-y-4 p-6 mx-4 bg-white shadow-md rounded-lg min-w-[250px] max-w-[400px] max-h-[500px] overflow-y-auto"
       >
-        {error && <p className="text-red-500 font-semibold">{error}</p>}
         <label className="flex flex-col">
           <span className="font-semibold">Your Name:</span>
           <input
@@ -343,7 +353,7 @@ const UserInput: React.FC = () => {
           />
           <span className="text-center">{timeImportance}</span>
         </label>
-
+        {error && <p className="text-red-500 font-semibold">{error}</p>}
         <button
           type="submit"
           className="bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
