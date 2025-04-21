@@ -2,7 +2,7 @@
 
 - 📖 Vitest
 
-## Development
+## How to run
 
 Run the test server:
 
