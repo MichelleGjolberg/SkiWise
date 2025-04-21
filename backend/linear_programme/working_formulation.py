@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 # User Inputs & from API ----------------------> Get from backend
 # ==========================
 
-num_people = 5
+num_people = 2
 max_budget = 100
-max_time = 5
-min_snowfall = 1
-w1, w2, w3 = 5, -8, -3 # Budget constrained student
+max_time = 400
+min_snowfall = 3
+w1, w2, w3 = 5, -2, -8 # time constrained student
 DRIVING_EXPERIENCE_FACTOR = 0.05  # Intermediate level
 
 # ==========================
@@ -66,11 +66,11 @@ def calculate_base_fee(miles):
     """Calculate base fee based on round-trip miles (scales between $5-$30)."""
     round_trip_miles = 2*miles
     if round_trip_miles >= 200:
-        return 30
+        return 10
     else:
         return 5 + (round_trip_miles / 100)
 
-def round_up_to_nearest_10(x):
+def round_up_to_nearest_5(x):
     """Round up a number to the nearest 5."""
     return math.ceil(x / 5.0) * 5
 
@@ -93,9 +93,15 @@ def calculate_cost_per_person(num_people):
     
     for i in range(len(miles)):
         base_fee = calculate_base_fee(miles[i])
-        one_way_cost = 0.15 * miles[i] * FUEL_COST * (1 + MAINTENANCE_FACTOR)
-        per_person_cost = base_fee + 2* (one_way_cost / num_people)
-        cost_per_person.append(round_up_to_nearest_10(per_person_cost))
+        # Estimate gas cost only, with maintenance overhead
+        gallons_used = miles[i]*2 / 20
+        gas_cost = gallons_used * FUEL_COST * (1 + MAINTENANCE_FACTOR)
+
+        # Total trip cost + base, split among group
+        total_cost = gas_cost + base_fee
+        per_person_cost = total_cost / num_people
+        
+        cost_per_person.append(round_up_to_nearest_5(per_person_cost))
         # cost_per_person.append(per_person_cost)
         
         # per_person_cost = base_fee + 2* (one_way_cost / num_people)
@@ -147,7 +153,7 @@ def optimize_ski_resorts(num_people, max_budget, max_time, min_snowfall, w1, w2,
         print(f"  Normalized Cost: {normalized_cost[i]:.2f}")
         print(f"  Normalized Time: {normalized_time[i]:.2f}")
 
-        if cost_per_person[i] <= max_budget and travel_time[i] <= max_time and snowfall_end[i] >= min_snowfall:
+        if cost_per_person[i] <= max_budget and travel_time[i] <= max_time/60 and snowfall_end[i] >= min_snowfall:
             selected_resorts.append((i, score))
 
     # Rank resorts by score
@@ -195,10 +201,10 @@ def plot_resort_scores(cost_per_person, travel_time, scores, resort_names, top_r
     plt.legend(loc='lower right')
 
     plt.grid(True)
-    plt.xlim(0, 90)
+    plt.xlim(0, 60)
     # plt.show()
         # plt.grid(True)
-    plt.savefig("resort_plot.png")
+    plt.savefig("resort_plot_2.png")
     print("Plot saved as 'resort_plot.png'")
 
 
