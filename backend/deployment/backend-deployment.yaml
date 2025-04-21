@@ -4,7 +4,7 @@
  metadata:
    name: backend-deployment
  spec:
-   replicas: 2
+   replicas: 1
    selector:
      matchLabels:
        app: backend
@@ -15,10 +15,10 @@
      spec:
        containers:
        - name: backend
-         image: mukund0004/skiwise-backend:v2.2
+         image: mukund0004/skiwise-backend:v3
          envFrom:
            - secretRef:
-               name: backend-secret2
+               name: backend-secret3
          ports:
          - containerPort: 8000
          resources:
