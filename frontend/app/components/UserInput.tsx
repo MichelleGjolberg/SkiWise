@@ -135,9 +135,9 @@ const UserInput: React.FC = () => {
       setError('Something went wrong. Showing default resorts.');
       setIsDefault(true);
       await get_all_resorts(); // fallback
+    } finally {
+      setIsLoading(false); //
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
