@@ -1,6 +1,3 @@
-## Frontend
-- Remix with Vite bundler
-- Typescript
-- Tailwind
-### Using packages as
-- Mapbox
+## This is the testing branch of the frontend
+
+For more details look inside frontend folder
